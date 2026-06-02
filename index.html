@@ -1,464 +1,638 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FLN Camp Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #f4f7f6; }
-    .card { margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border:none; }
-    .card-header { background-color: #0d6efd; color: white; font-weight: bold; }
-    .form-label { font-weight: 500; font-size: 0.9rem;}
-    input[readonly] { background-color: #e9ecef !important; }
-    .table-details th { width: 40%; background-color: #f8f9fa; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLN Camp Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+/* --- New Gradient Theme --- */
+body {
+    background: linear-gradient(135deg, #0a0a0a 0%, #003311 50%, #331500 100%);
+    background-attachment: fixed;
+    color: #333;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+}
+
+/* Main Container and Cards styling for the new theme */
+.container { position: relative; z-index: 1; }
+h2.text-center { color: #f4f7f6; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+.card { margin-bottom: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); border:none; background-color: rgba(255, 255, 255, 0.96); border-radius: 12px; overflow: hidden; }
+.card-header { background: linear-gradient(90deg, #004d00, #0a0a0a); color: #ff9900 !important; font-weight: bold; letter-spacing: 0.5px; border-bottom: 2px solid #ff9900; }
+.form-label { font-weight: 600; font-size: 0.9rem; color: #111; }
+input[readonly] { background-color: #e9ecef !important; border: 1px dashed #ccc; }
+.table-details th { width: 40%; background-color: #f8f9fa; }
+
+/* Customizing specific section headers */
+.card-header.bg-success { background: linear-gradient(90deg, #1e5631, #0a0a0a) !important; color: #ff9900 !important; }
+.card-header.bg-info { background: linear-gradient(90deg, #2a4b7c, #0a0a0a) !important; color: #ff9900 !important; }
+.card-header.bg-primary { background: linear-gradient(90deg, #0d6efd, #0a0a0a) !important; color: #ff9900 !important; }
+.card-header.bg-warning { background: linear-gradient(90deg, #cc5500, #0a0a0a) !important; color: #fff !important; border-bottom: 2px solid #000; }
+.card-header.bg-secondary { background: linear-gradient(90deg, #444, #0a0a0a) !important; }
+
+/* Customizing Buttons to fit Theme */
+.btn-primary { background-color: #004d00; border-color: #003311; }
+.btn-primary:hover { background-color: #003311; border-color: #001a08; }
+.btn-warning { background-color: #cc5500; border-color: #993d00; color: white; }
+.btn-warning:hover { background-color: #993d00; border-color: #662900; color: white; }
+
+/* --- Digital Clock Styling --- */
+#clockContainer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #0a0a0a;
+    color: #ff9900;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 2px solid #ff9900;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    text-align: center;
+    z-index: 1000;
+}
+#clockTime { font-size: 1.6rem; font-weight: bold; font-family: 'Courier New', Courier, monospace; line-height: 1; }
+#clockDate { font-size: 0.85rem; margin-top: 4px; font-weight: 500; color: #ccc;}
+
+@media (max-width: 992px) {
+    #clockContainer {
+        position: relative;
+        top: 0; right: 0;
+        margin: 15px auto 25px auto;
+        width: fit-content;
+    }
+}
+</style>
 </head>
 <body>
 
+<div id="offlineBanner" class="alert alert-danger text-center fw-bold sticky-top mb-0 d-none" style="z-index: 1050; border-radius: 0;">
+    No Internet Connection. Forms will be saved offline and auto-submit when connected.
+</div>
+
+<div id="syncBanner" class="alert alert-success text-center fw-bold sticky-top mb-0 d-none" style="z-index: 1050; border-radius: 0;">
+    Internet restored! Syncing offline data...
+</div>
+
+<div id="clockContainer">
+    <div id="clockTime">--:--:-- --</div>
+    <div id="clockDate">---</div>
+</div>
+
 <div id="loadingOverlay" class="text-center mt-5">
-  <div class="spinner-border text-primary" role="status"></div>
-  <h4 class="mt-2" id="loadingText">Connecting to Database...</h4>
+<div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;"></div>
+<h4 class="mt-3 text-white" id="loadingText">Connecting to Database...</h4>
 </div>
 
 <div class="container mt-4 mb-5 d-none" id="mainContainer">
-  <h2 class="text-center mb-4">FLN Camp Dashboard</h2>
-  
-  <ul class="nav nav-pills nav-justified mb-4" id="dashboardTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab">1. Monitoring Form</button>
-    </li>
-    <li class="nav-item d-none" id="cotTabContainer" role="presentation">
-      <button class="nav-link bg-warning text-dark fw-bold" id="cot-tab" data-bs-toggle="tab" data-bs-target="#cot" type="button" role="tab">2. COT Form</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link bg-secondary text-white fw-bold ms-2" id="report-tab" data-bs-toggle="tab" data-bs-target="#reporting" type="button" role="tab">3. Reporting / Edit</button>
-    </li>
-  </ul>
+<h2 class="text-center mb-4">FLN Camp Dashboard</h2>
 
-  <div class="tab-content" id="myTabContent">
-    
-    <!-- ================= MONITORING TAB ================= -->
-    <div class="tab-pane fade show active" id="monitoring" role="tabpanel">
-      <form id="monitoringForm" onsubmit="submitMonitoring(event)">
-        <div class="card">
-          <div class="card-header">School & Operations</div>
-          <div class="card-body row g-3">
-            <div class="col-md-4"><label class="form-label">Search EMIS Code</label><input type="text" class="form-control" name="emis" id="emisInput" list="emisList" onchange="handleEmisSelection()" required autocomplete="off" placeholder="Type EMIS..."> <datalist id="emisList"></datalist></div>
-            <div class="col-md-8"><label class="form-label">School Name</label><input type="text" class="form-control" id="monSchoolName" readonly></div>
-            <div class="col-md-4"><label class="form-label">Visit Date</label><input type="date" class="form-control" name="visitDate" id="monVisitDate" required></div>
-            <div class="col-md-4"><label class="form-label">Is the camp operational?</label><select class="form-select" name="operational"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-4"><label class="form-label">Received funds?</label><select class="form-select" name="fundsReceived"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-6"><label class="form-label">Amount (If Yes)</label><input type="number" class="form-control" name="fundAmount"></div>
-            <div class="col-md-6"><label class="form-label">Date of Receiving</label><input type="date" class="form-control" name="fundDate"></div>
-          </div>
-        </div>
+<ul class="nav nav-pills nav-justified mb-4" id="dashboardTabs" role="tablist">
+<li class="nav-item" role="presentation">
+<button class="nav-link active fw-bold border" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab" style="background-color: #004d00; color: white;">1. Monitoring Form</button>
+</li>
+<li class="nav-item d-none" id="cotTabContainer" role="presentation">
+<button class="nav-link fw-bold border" id="cot-tab" data-bs-toggle="tab" data-bs-target="#cot" type="button" role="tab" style="background-color: #cc5500; color: white;">2. COT Form</button>
+</li>
+<li class="nav-item" role="presentation">
+<button class="nav-link bg-dark text-white fw-bold ms-2 border" id="report-tab" data-bs-toggle="tab" data-bs-target="#reporting" type="button" role="tab">3. Reporting / Edit</button>
+</li>
+</ul>
 
-        <div class="card">
-          <div class="card-header">Facilities & Materials</div>
-          <div class="card-body row g-3">
-            <div class="col-md-6"><label class="form-label">Toilet facilities functional?</label><select class="form-select" name="toilets"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-6"><label class="form-label">Handwash (soap) available?</label><select class="form-select" name="handwash"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-6"><label class="form-label">Clean drinking water?</label><select class="form-select" name="water"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-6"><label class="form-label">Banner displayed?</label><select class="form-select" name="banner"><option>Yes</option><option>No</option></select></div>
-            <div class="col-md-6"><label class="form-label">Sports materials?</label><select class="form-select" name="sports" id="sportsSelect" onchange="toggleSportsDetails()"><option>Yes</option><option>No</option><option value="Partial">Partial</option></select></div>
-            <div class="col-md-6" id="partialDetailsDiv" style="display: none;"><label class="form-label text-danger">Partial Details</label><input type="text" class="form-control" name="sportsPartial" id="sportsPartial"></div>
-          </div>
-        </div>
+<div class="tab-content" id="myTabContent">
 
-        <!-- Section 3: Beginner Camp -->
-        <div class="card">
-          <div class="card-header bg-success text-white">Beginner Camp</div>
-          <div class="card-body row g-3">
-             <div class="col-md-3"><label class="form-label">Girls Enrolled (Already)</label><input type="number" class="form-control b_enrolled" name="b_ge_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Enrolled (Already)</label><input type="number" class="form-control b_enrolled" name="b_be_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Girls Enrolled (OOSC)</label><input type="number" class="form-control b_enrolled" name="b_ge_o" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Enrolled (OOSC)</label><input type="number" class="form-control b_enrolled" name="b_be_o" value="0" min="0"></div>
-             
-             <div class="col-md-3"><label class="form-label">Girls Present (Already)</label><input type="number" class="form-control b_present" name="b_gp_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Present (Already)</label><input type="number" class="form-control b_present" name="b_bp_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Girls Present (OOSC)</label><input type="number" class="form-control b_present" name="b_gp_o" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Present (OOSC)</label><input type="number" class="form-control b_present" name="b_bp_o" value="0" min="0"></div>
-             
-             <div class="col-md-6"><label class="form-label">Teacher present?</label><select class="form-select" name="b_teacher"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Headteacher present?</label><select class="form-select" name="b_head"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Resource packs available?</label><select class="form-select" name="b_pack_avail"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Resource pack used?</label><select class="form-select" name="b_pack_used"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Stationary available?</label><select class="form-select" name="b_stat_avail"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Stationary used?</label><select class="form-select" name="b_stat_used"><option>Yes</option><option>No</option></select></div>
-             
-             <div class="col-md-6"><label class="form-label">Shortages/issues?</label><select class="form-select" name="b_issues" id="b_issues" onchange="toggleIssueDetails('b')"><option>None</option><option>Material not received yet</option><option>Consumed or Lost by students</option><option value="Other">Other</option></select></div>
-             <div class="col-md-6" id="b_issue_other_div" style="display: none;"><label class="form-label text-danger">Other Details</label><input type="text" class="form-control" name="b_issue_other" id="b_issue_other"></div>
-             <div class="col-12"><label class="form-label">Feedback</label><textarea class="form-control" name="b_feedback"></textarea></div>
-          </div>
-        </div>
-
-        <!-- Section 4: Intermediate Camp -->
-        <div class="card">
-          <div class="card-header bg-info text-white">Intermediate Camp</div>
-          <div class="card-body row g-3">
-             <div class="col-md-3"><label class="form-label">Girls Enrolled (Already)</label><input type="number" class="form-control i_enrolled" name="i_ge_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Enrolled (Already)</label><input type="number" class="form-control i_enrolled" name="i_be_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Girls Enrolled (OOSC)</label><input type="number" class="form-control i_enrolled" name="i_ge_o" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Enrolled (OOSC)</label><input type="number" class="form-control i_enrolled" name="i_be_o" value="0" min="0"></div>
-             
-             <div class="col-md-3"><label class="form-label">Girls Present (Already)</label><input type="number" class="form-control i_present" name="i_gp_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Present (Already)</label><input type="number" class="form-control i_present" name="i_bp_a" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Girls Present (OOSC)</label><input type="number" class="form-control i_present" name="i_gp_o" value="0" min="0"></div>
-             <div class="col-md-3"><label class="form-label">Boys Present (OOSC)</label><input type="number" class="form-control i_present" name="i_bp_o" value="0" min="0"></div>
-             
-             <div class="col-md-6"><label class="form-label">Teacher present?</label><select class="form-select" name="i_teacher"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Headteacher present?</label><select class="form-select" name="i_head"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Resource packs available?</label><select class="form-select" name="i_pack_avail"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Resource pack used?</label><select class="form-select" name="i_pack_used"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Stationary available?</label><select class="form-select" name="i_stat_avail"><option>Yes</option><option>No</option></select></div>
-             <div class="col-md-6"><label class="form-label">Stationary used?</label><select class="form-select" name="i_stat_used"><option>Yes</option><option>No</option></select></div>
-             
-             <div class="col-md-6"><label class="form-label">Shortages/issues?</label><select class="form-select" name="i_issues" id="i_issues" onchange="toggleIssueDetails('i')"><option>None</option><option>Material not received yet</option><option>Consumed or Lost by students</option><option value="Other">Other</option></select></div>
-             <div class="col-md-6" id="i_issue_other_div" style="display: none;"><label class="form-label text-danger">Other Details</label><input type="text" class="form-control" name="i_issue_other" id="i_issue_other"></div>
-             <div class="col-12"><label class="form-label">Feedback</label><textarea class="form-control" name="i_feedback"></textarea></div>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold" id="btnSubmitMon">Submit Monitoring Data & Open COT</button>
-      </form>
-    </div>
-
-    <!-- ================= COT TAB ================= -->
-    <div class="tab-pane fade" id="cot" role="tabpanel">
-      <form id="cotForm" onsubmit="submitCOT(event)">
-        <div class="card border-0 mb-3">
-          <div class="card-body row g-2 pb-0">
-            <div class="col-md-4"><label class="form-label text-muted">Visit Date</label><input type="date" class="form-control border-0 bg-white" name="cotVisitDate" id="cotVisitDate" readonly></div>
-            <div class="col-md-4"><label class="form-label text-muted">EMIS Code</label><input type="text" class="form-control border-0 bg-white" name="cotEmis" id="cotEmis" readonly></div>
-            <div class="col-md-4"><label class="form-label text-muted">School Name</label><input type="text" class="form-control border-0 bg-white" name="cotSchool" id="cotSchool" readonly></div>
-          </div>
-        </div>
-
-        <div class="card border-primary">
-          <div class="card-header bg-primary text-white">Teacher 1 Observation</div>
-          <div class="card-body row g-3">
-            <div class="col-md-6"><label class="form-label">Teacher Name</label><input type="text" class="form-control" name="t1_name" id="t1_name" readonly></div>
-            <div class="col-md-6"><label class="form-label">Teacher CNIC</label><input type="text" class="form-control" name="t1_cnic" id="t1_cnic" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Assigned</label><input type="text" class="form-control" name="t1_camp" id="t1_camp" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Total Enrolled</label><input type="number" class="form-control" name="t1_enrolled" id="t1_enrolled" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Total Present</label><input type="number" class="form-control" name="t1_present" id="t1_present" readonly></div>
-            <div class="col-md-4"><label class="form-label text-primary fw-bold">Start Time</label><input type="time" class="form-control border-primary" name="t1_time" id="t1_time" onchange="autoSetTeacher2Time()" required></div>
-            <div class="col-md-4"><label class="form-label">Week (1-9)</label><select class="form-select" name="t1_week" required><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
-            <div class="col-md-4"><label class="form-label">Subject</label><select class="form-select" name="t1_subject" required><option>English</option><option>Urdu</option><option>Math</option></select></div>
-          </div>
-        </div>
-
-        <div class="card border-warning">
-          <div class="card-header bg-warning text-dark">Teacher 2 Observation</div>
-          <div class="card-body row g-3">
-            <div class="col-md-6"><label class="form-label">Teacher Name</label><input type="text" class="form-control" name="t2_name" id="t2_name" readonly></div>
-            <div class="col-md-6"><label class="form-label">Teacher CNIC</label><input type="text" class="form-control" name="t2_cnic" id="t2_cnic" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Assigned</label><input type="text" class="form-control" name="t2_camp" id="t2_camp" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Total Enrolled</label><input type="number" class="form-control" name="t2_enrolled" id="t2_enrolled" readonly></div>
-            <div class="col-md-4"><label class="form-label">Camp Total Present</label><input type="number" class="form-control" name="t2_present" id="t2_present" readonly></div>
-            <div class="col-md-4"><label class="form-label text-warning fw-bold">Start Time (+30 Mins)</label><input type="time" class="form-control border-warning" name="t2_time" id="t2_time" required></div>
-            <div class="col-md-4"><label class="form-label">Week (1-9)</label><select class="form-select" name="t2_week" required><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
-            <div class="col-md-4"><label class="form-label">Subject</label><select class="form-select" name="t2_subject" required><option>English</option><option>Urdu</option><option>Math</option></select></div>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-warning w-100 fw-bold py-3" id="btnSubmitCot">Submit Both COT Observations</button>
-      </form>
-    </div>
-
-    <!-- ================= REPORTING TAB ================= -->
-    <div class="tab-pane fade" id="reporting" role="tabpanel">
-      <div class="card mb-4">
-        <div class="card-header bg-secondary">Filter Reports</div>
-        <div class="card-body row g-3">
-          <div class="col-md-3"><label class="form-label">Start Visit Date</label><input type="date" class="form-control" id="filterStart"></div>
-          <div class="col-md-3"><label class="form-label">End Visit Date</label><input type="date" class="form-control" id="filterEnd"></div>
-          <div class="col-md-4"><label class="form-label">EMIS Code</label><input type="text" class="form-control" id="filterEmis" list="emisList" placeholder="Leave blank for all"></div>
-          <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" id="btnSearchReports" onclick="executeSearch()">Search</button></div>
-        </div>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-bordered table-striped table-hover bg-white align-middle">
-          <thead class="table-dark">
-            <tr><th>Date</th><th>EMIS Code</th><th>School Name</th><th class="text-center">Action</th></tr>
-          </thead>
-          <tbody id="reportsTableBody">
-            <tr><td colspan="4" class="text-center text-muted">Enter filters and click search</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+<div class="tab-pane fade show active" id="monitoring" role="tabpanel">
+<form id="monitoringForm" onsubmit="submitMonitoring(event)">
+<div class="card">
+<div class="card-header">School & Operations</div>
+<div class="card-body row g-3">
+<div class="col-md-4"><label class="form-label">Search EMIS Code</label><input type="text" class="form-control" name="emis" id="emisInput" list="emisList" onchange="handleEmisSelection()" required autocomplete="off" placeholder="Type EMIS..."> <datalist id="emisList"></datalist></div>
+<div class="col-md-8"><label class="form-label">School Name</label><input type="text" class="form-control" id="monSchoolName" readonly></div>
+<div class="col-md-4"><label class="form-label">Visit Date</label><input type="date" class="form-control" name="visitDate" id="monVisitDate" required></div>
+<div class="col-md-4"><label class="form-label">Is the camp operational?</label><select class="form-select" name="operational"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-4"><label class="form-label">Received funds?</label><select class="form-select" name="fundsReceived"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Amount (If Yes)</label><input type="number" class="form-control" name="fundAmount"></div>
+<div class="col-md-6"><label class="form-label">Date of Receiving</label><input type="date" class="form-control" name="fundDate"></div>
+</div>
 </div>
 
-<!-- ================= REPORT MODAL (View Only) ================= -->
+<div class="card">
+<div class="card-header">Facilities & Materials</div>
+<div class="card-body row g-3">
+<div class="col-md-6"><label class="form-label">Toilet facilities functional?</label><select class="form-select" name="toilets"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Handwash (soap) available?</label><select class="form-select" name="handwash"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Clean drinking water?</label><select class="form-select" name="water"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Banner displayed?</label><select class="form-select" name="banner"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Sports materials?</label><select class="form-select" name="sports" id="sportsSelect" onchange="toggleSportsDetails()"><option>Yes</option><option>No</option><option value="Partial">Partial</option></select></div>
+<div class="col-md-6" id="partialDetailsDiv" style="display: none;"><label class="form-label text-danger">Partial Details</label><input type="text" class="form-control" name="sportsPartial" id="sportsPartial"></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-header bg-success text-white">Beginner Camp</div>
+<div class="card-body row g-3">
+<div class="col-md-3"><label class="form-label">Girls Enrolled (Already)</label><input type="number" class="form-control b_enrolled" name="b_ge_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Enrolled (Already)</label><input type="number" class="form-control b_enrolled" name="b_be_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Girls Enrolled (OOSC)</label><input type="number" class="form-control b_enrolled" name="b_ge_o" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Enrolled (OOSC)</label><input type="number" class="form-control b_enrolled" name="b_be_o" value="0" min="0"></div>
+
+<div class="col-md-3"><label class="form-label">Girls Present (Already)</label><input type="number" class="form-control b_present" name="b_gp_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Present (Already)</label><input type="number" class="form-control b_present" name="b_bp_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Girls Present (OOSC)</label><input type="number" class="form-control b_present" name="b_gp_o" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Present (OOSC)</label><input type="number" class="form-control b_present" name="b_bp_o" value="0" min="0"></div>
+
+<div class="col-md-6"><label class="form-label">Teacher present?</label><select class="form-select" name="b_teacher"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Headteacher present?</label><select class="form-select" name="b_head"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Resource packs available?</label><select class="form-select" name="b_pack_avail"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Resource pack used?</label><select class="form-select" name="b_pack_used"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Stationary available?</label><select class="form-select" name="b_stat_avail"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Stationary used?</label><select class="form-select" name="b_stat_used"><option>Yes</option><option>No</option></select></div>
+
+<div class="col-md-6"><label class="form-label">Shortages/issues?</label><select class="form-select" name="b_issues" id="b_issues" onchange="toggleIssueDetails('b')"><option>None</option><option>Material not received yet</option><option>Consumed or Lost by students</option><option value="Other">Other</option></select></div>
+<div class="col-md-6" id="b_issue_other_div" style="display: none;"><label class="form-label text-danger">Other Details</label><input type="text" class="form-control" name="b_issue_other" id="b_issue_other"></div>
+<div class="col-12"><label class="form-label">Feedback</label><textarea class="form-control" name="b_feedback"></textarea></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-header bg-info text-white">Intermediate Camp</div>
+<div class="card-body row g-3">
+<div class="col-md-3"><label class="form-label">Girls Enrolled (Already)</label><input type="number" class="form-control i_enrolled" name="i_ge_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Enrolled (Already)</label><input type="number" class="form-control i_enrolled" name="i_be_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Girls Enrolled (OOSC)</label><input type="number" class="form-control i_enrolled" name="i_ge_o" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Enrolled (OOSC)</label><input type="number" class="form-control i_enrolled" name="i_be_o" value="0" min="0"></div>
+
+<div class="col-md-3"><label class="form-label">Girls Present (Already)</label><input type="number" class="form-control i_present" name="i_gp_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Present (Already)</label><input type="number" class="form-control i_present" name="i_bp_a" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Girls Present (OOSC)</label><input type="number" class="form-control i_present" name="i_gp_o" value="0" min="0"></div>
+<div class="col-md-3"><label class="form-label">Boys Present (OOSC)</label><input type="number" class="form-control i_present" name="i_bp_o" value="0" min="0"></div>
+
+<div class="col-md-6"><label class="form-label">Teacher present?</label><select class="form-select" name="i_teacher"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Headteacher present?</label><select class="form-select" name="i_head"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Resource packs available?</label><select class="form-select" name="i_pack_avail"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Resource pack used?</label><select class="form-select" name="i_pack_used"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Stationary available?</label><select class="form-select" name="i_stat_avail"><option>Yes</option><option>No</option></select></div>
+<div class="col-md-6"><label class="form-label">Stationary used?</label><select class="form-select" name="i_stat_used"><option>Yes</option><option>No</option></select></div>
+
+<div class="col-md-6"><label class="form-label">Shortages/issues?</label><select class="form-select" name="i_issues" id="i_issues" onchange="toggleIssueDetails('i')"><option>None</option><option>Material not received yet</option><option>Consumed or Lost by students</option><option value="Other">Other</option></select></div>
+<div class="col-md-6" id="i_issue_other_div" style="display: none;"><label class="form-label text-danger">Other Details</label><input type="text" class="form-control" name="i_issue_other" id="i_issue_other"></div>
+<div class="col-12"><label class="form-label">Feedback</label><textarea class="form-control" name="i_feedback"></textarea></div>
+</div>
+</div>
+<button type="submit" class="btn btn-primary w-100 py-3 fw-bold" id="btnSubmitMon" style="font-size: 1.1rem; letter-spacing: 1px;">Submit Monitoring Data & Open COT</button>
+</form>
+</div>
+
+<div class="tab-pane fade" id="cot" role="tabpanel">
+<form id="cotForm" onsubmit="submitCOT(event)">
+<div class="card border-0 mb-3" style="background-color: transparent; box-shadow: none;">
+<div class="card-body row g-2 pb-0 text-white">
+<div class="col-md-4"><label class="form-label text-light">Visit Date</label><input type="date" class="form-control border-0 bg-white" name="cotVisitDate" id="cotVisitDate" readonly></div>
+<div class="col-md-4"><label class="form-label text-light">EMIS Code</label><input type="text" class="form-control border-0 bg-white" name="cotEmis" id="cotEmis" readonly></div>
+<div class="col-md-4"><label class="form-label text-light">School Name</label><input type="text" class="form-control border-0 bg-white" name="cotSchool" id="cotSchool" readonly></div>
+</div>
+</div>
+
+<div class="card border-primary">
+<div class="card-header bg-primary text-white">Teacher 1 Observation</div>
+<div class="card-body row g-3">
+<div class="col-md-6"><label class="form-label">Teacher Name</label><input type="text" class="form-control" name="t1_name" id="t1_name" readonly></div>
+<div class="col-md-6"><label class="form-label">Teacher CNIC</label><input type="text" class="form-control" name="t1_cnic" id="t1_cnic" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Assigned</label><input type="text" class="form-control" name="t1_camp" id="t1_camp" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Total Enrolled</label><input type="number" class="form-control" name="t1_enrolled" id="t1_enrolled" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Total Present</label><input type="number" class="form-control" name="t1_present" id="t1_present" readonly></div>
+<div class="col-md-4"><label class="form-label text-primary fw-bold">Start Time</label><input type="time" class="form-control border-primary" name="t1_time" id="t1_time" onchange="autoSetTeacher2Time()" required></div>
+<div class="col-md-4"><label class="form-label">Week (1-9)</label><select class="form-select" name="t1_week" required><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+<div class="col-md-4"><label class="form-label">Subject</label><select class="form-select" name="t1_subject" required><option>English</option><option>Urdu</option><option>Math</option></select></div>
+</div>
+</div>
+
+<div class="card border-warning">
+<div class="card-header bg-warning text-dark">Teacher 2 Observation</div>
+<div class="card-body row g-3">
+<div class="col-md-6"><label class="form-label">Teacher Name</label><input type="text" class="form-control" name="t2_name" id="t2_name" readonly></div>
+<div class="col-md-6"><label class="form-label">Teacher CNIC</label><input type="text" class="form-control" name="t2_cnic" id="t2_cnic" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Assigned</label><input type="text" class="form-control" name="t2_camp" id="t2_camp" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Total Enrolled</label><input type="number" class="form-control" name="t2_enrolled" id="t2_enrolled" readonly></div>
+<div class="col-md-4"><label class="form-label">Camp Total Present</label><input type="number" class="form-control" name="t2_present" id="t2_present" readonly></div>
+<div class="col-md-4"><label class="form-label text-warning fw-bold">Start Time (+30 Mins)</label><input type="time" class="form-control border-warning" name="t2_time" id="t2_time" required></div>
+<div class="col-md-4"><label class="form-label">Week (1-9)</label><select class="form-select" name="t2_week" required><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+<div class="col-md-4"><label class="form-label">Subject</label><select class="form-select" name="t2_subject" required><option>English</option><option>Urdu</option><option>Math</option></select></div>
+</div>
+</div>
+<button type="submit" class="btn btn-warning w-100 fw-bold py-3" id="btnSubmitCot" style="font-size: 1.1rem; letter-spacing: 1px;">Submit Both COT Observations</button>
+</form>
+</div>
+
+<div class="tab-pane fade" id="reporting" role="tabpanel">
+<div class="card mb-4">
+<div class="card-header bg-secondary text-white">Filter Reports</div>
+<div class="card-body row g-3">
+<div class="col-md-3"><label class="form-label">Start Visit Date</label><input type="date" class="form-control" id="filterStart"></div>
+<div class="col-md-3"><label class="form-label">End Visit Date</label><input type="date" class="form-control" id="filterEnd"></div>
+<div class="col-md-4"><label class="form-label">EMIS Code</label><input type="text" class="form-control" id="filterEmis" list="emisList" placeholder="Leave blank for all"></div>
+<div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100 fw-bold" id="btnSearchReports" onclick="executeSearch()">Search</button></div>
+</div>
+</div>
+
+<div class="table-responsive rounded bg-white p-2">
+<table class="table table-bordered table-striped table-hover align-middle mb-0">
+<thead class="table-dark">
+<tr><th>Date</th><th>EMIS Code</th><th>School Name</th><th class="text-center">Action</th></tr>
+</thead>
+<tbody id="reportsTableBody">
+<tr><td colspan="4" class="text-center text-muted py-4">Enter filters and click search</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
 <div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="modalReportTitle">Report Details</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body bg-light">
-        <ul class="nav nav-tabs mb-3" role="tablist">
-          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#modalMonTab">Monitoring Data</a></li>
-          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#modalCotTab">COT Data</a></li>
-        </ul>
-        <div class="tab-content">
-          <div class="tab-pane fade show active" id="modalMonTab">
-            <div class="table-responsive"><table class="table table-bordered table-details bg-white"><tbody id="modalMonBody"></tbody></table></div>
-          </div>
-          <div class="tab-pane fade" id="modalCotTab">
-            <div class="table-responsive"><table class="table table-bordered table-details bg-white"><tbody id="modalCotBody"></tbody></table></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="modal-dialog modal-xl modal-dialog-scrollable">
+<div class="modal-content">
+<div class="modal-header bg-dark text-white border-bottom-0">
+<h5 class="modal-title text-warning" id="modalReportTitle">Report Details</h5>
+<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body bg-light">
+<ul class="nav nav-tabs mb-3" role="tablist">
+<li class="nav-item"><a class="nav-link active fw-bold" data-bs-toggle="tab" href="#modalMonTab" style="color:#004d00;">Monitoring Data</a></li>
+<li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#modalCotTab" style="color:#cc5500;">COT Data</a></li>
+</ul>
+<div class="tab-content">
+<div class="tab-pane fade show active" id="modalMonTab">
+<div class="table-responsive"><table class="table table-bordered table-details bg-white shadow-sm"><tbody id="modalMonBody"></tbody></table></div>
+</div>
+<div class="tab-pane fade" id="modalCotTab">
+<div class="table-responsive"><table class="table table-bordered table-details bg-white shadow-sm"><tbody id="modalCotBody"></tbody></table></div>
+</div>
+</div>
+</div>
+</div>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ==============================================================
-  // IMPORTANT: PASTE YOUR NEW GOOGLE WEB APP URL HERE
-  // ==============================================================
-  const API_URL = "https://script.google.com/macros/s/AKfycbzH_6BcMMQGPVZWbgTKzxY-8x2mQBgVTLjAaq1wzJRD4-Tbo8bX7HekN5zkBwFP32JTcA/exec"; 
-  
-  let schoolData = {};
-  let calculatedTotals = { B_Enrolled: 0, B_Present: 0, I_Enrolled: 0, I_Present: 0 };
+// ==============================================================
+// IMPORTANT: PASTE YOUR NEW GOOGLE WEB APP URL HERE
+// ==============================================================
+const API_URL = "https://script.google.com/macros/s/AKfycbzH_6BcMMQGPVZWbgTKzxY-8x2mQBgVTLjAaq1wzJRD4-Tbo8bX7HekN5zkBwFP32JTcA/exec";
 
-  const monInputNames = [
-    "emis", "visitDate", "operational", "fundsReceived", "fundAmount", "fundDate", "toilets", "handwash", "water", "banner", "sports", "sportsPartial",
-    "b_ge_a", "b_be_a", "b_ge_o", "b_be_o", "b_gp_a", "b_bp_a", "b_gp_o", "b_bp_o", "b_teacher", "b_head", "b_pack_avail", "b_pack_used", "b_stat_avail", "b_stat_used", "b_issues", "b_issue_other", "b_feedback",
-    "i_ge_a", "i_be_a", "i_ge_o", "i_be_o", "i_gp_a", "i_bp_a", "i_gp_o", "i_bp_o", "i_teacher", "i_head", "i_pack_avail", "i_pack_used", "i_stat_avail", "i_stat_used", "i_issues", "i_issue_other", "i_feedback"
-  ];
-  const cotInputNames = [
-    "cotVisitDate", "cotEmis", "cotSchool", "t1_name", "t1_cnic", "t1_camp", "t1_enrolled", "t1_present", "t1_week", "t1_subject", "t1_time", "t2_name", "t2_cnic", "t2_camp", "t2_enrolled", "t2_present", "t2_week", "t2_subject", "t2_time"
-  ];
-  const attendancePairs = [
-    { enrolled: 'b_ge_a', present: 'b_gp_a' }, { enrolled: 'b_be_a', present: 'b_bp_a' }, { enrolled: 'b_ge_o', present: 'b_gp_o' }, { enrolled: 'b_be_o', present: 'b_bp_o' },
-    { enrolled: 'i_ge_a', present: 'i_gp_a' }, { enrolled: 'i_be_a', present: 'i_bp_a' }, { enrolled: 'i_ge_o', present: 'i_gp_o' }, { enrolled: 'i_be_o', present: 'i_bp_o' }
-  ];
+let schoolData = {};
+let calculatedTotals = { B_Enrolled: 0, B_Present: 0, I_Enrolled: 0, I_Present: 0 };
+let isEditMode = false; // Flag to track if the user is editing an existing entry
 
-  window.onload = function() {
+const monInputNames = [
+"emis", "visitDate", "operational", "fundsReceived", "fundAmount", "fundDate", "toilets", "handwash", "water", "banner", "sports", "sportsPartial",
+"b_ge_a", "b_be_a", "b_ge_o", "b_be_o", "b_gp_a", "b_bp_a", "b_gp_o", "b_bp_o", "b_teacher", "b_head", "b_pack_avail", "b_pack_used", "b_stat_avail", "b_stat_used", "b_issues", "b_issue_other", "b_feedback",
+"i_ge_a", "i_be_a", "i_ge_o", "i_be_o", "i_gp_a", "i_bp_a", "i_gp_o", "i_bp_o", "i_teacher", "i_head", "i_pack_avail", "i_pack_used", "i_stat_avail", "i_stat_used", "i_issues", "i_issue_other", "i_feedback"
+];
+const cotInputNames = [
+"cotVisitDate", "cotEmis", "cotSchool", "t1_name", "t1_cnic", "t1_camp", "t1_enrolled", "t1_present", "t1_week", "t1_subject", "t1_time", "t2_name", "t2_cnic", "t2_camp", "t2_enrolled", "t2_present", "t2_week", "t2_subject", "t2_time"
+];
+const attendancePairs = [
+{ enrolled: 'b_ge_a', present: 'b_gp_a' }, { enrolled: 'b_be_a', present: 'b_bp_a' }, { enrolled: 'b_ge_o', present: 'b_gp_o' }, { enrolled: 'b_be_o', present: 'b_bp_o' },
+{ enrolled: 'i_ge_a', present: 'i_gp_a' }, { enrolled: 'i_be_a', present: 'i_bp_a' }, { enrolled: 'i_ge_o', present: 'i_gp_o' }, { enrolled: 'i_be_o', present: 'i_bp_o' }
+];
+
+// DIGITAL CLOCK FUNCTION
+function startClock() {
+    function updateClock() {
+        const now = new Date();
+        let h = now.getHours();
+        let m = now.getMinutes();
+        let s = now.getSeconds();
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        
+        h = h % 12;
+        h = h ? h : 12; 
+        m = m < 10 ? '0' + m : m;
+        s = s < 10 ? '0' + s : s;
+        
+        document.getElementById('clockTime').innerText = `${h}:${m}:${s} ${ampm}`;
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('clockDate').innerText = now.toLocaleDateString(undefined, options);
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+// NETWORK LISTENERS FOR OFFLINE SUPPORT
+window.addEventListener('online', () => {
+    document.getElementById('offlineBanner').classList.add('d-none');
+    syncOfflineData();
+});
+window.addEventListener('offline', () => {
+    document.getElementById('offlineBanner').classList.remove('d-none');
+});
+
+window.onload = function() {
+    startClock();
     setupAttendanceValidation();
-    
+    if (!navigator.onLine) { document.getElementById('offlineBanner').classList.remove('d-none'); }
+
     // Fetch data using the new API architecture
     fetch(`${API_URL}?action=getSchoolData`)
-      .then(response => response.json())
-      .then(data => {
+    .then(response => response.json())
+    .then(data => {
         schoolData = data;
         const datalist = document.getElementById('emisList');
         for (const emis in schoolData) {
-          let option = document.createElement('option'); option.value = emis; datalist.appendChild(option);
+            let option = document.createElement('option'); option.value = emis; datalist.appendChild(option);
         }
         document.getElementById('loadingOverlay').classList.add('d-none'); document.getElementById('mainContainer').classList.remove('d-none');
-      })
-      .catch(error => {
-        document.getElementById('loadingText').innerText = "Error connecting to Database. Check URL.";
+        
+        // Auto-sync any offline data if device starts up connected
+        if (navigator.onLine) syncOfflineData();
+    })
+    .catch(error => {
+        document.getElementById('loadingText').innerText = "Error connecting to Database. Check URL or Internet Connection.";
         console.error(error);
-      });
-  };
-
-  function setupAttendanceValidation() {
-    attendancePairs.forEach(pair => {
-      const enrolledEl = document.querySelector(`input[name="${pair.enrolled}"]`);
-      const presentEl = document.querySelector(`input[name="${pair.present}"]`);
-      const validate = () => {
-        let eVal = parseInt(enrolledEl.value) || 0; let pVal = parseInt(presentEl.value) || 0;
-        presentEl.max = eVal;
-        if (pVal > eVal) { alert("Error: Attendance cannot be greater than Enrolled students."); presentEl.value = eVal; }
-      };
-      enrolledEl.addEventListener('input', validate); presentEl.addEventListener('input', validate);
     });
-  }
+};
 
-  function toggleSportsDetails() {
+function setupAttendanceValidation() {
+    attendancePairs.forEach(pair => {
+        const enrolledEl = document.querySelector(`input[name="${pair.enrolled}"]`);
+        const presentEl = document.querySelector(`input[name="${pair.present}"]`);
+        const validate = () => {
+            let eVal = parseInt(enrolledEl.value) || 0; let pVal = parseInt(presentEl.value) || 0;
+            presentEl.max = eVal;
+            if (pVal > eVal) { alert("Error: Attendance cannot be greater than Enrolled students."); presentEl.value = eVal; }
+        };
+        enrolledEl.addEventListener('input', validate); presentEl.addEventListener('input', validate);
+    });
+}
+
+function toggleSportsDetails() {
     const val = document.getElementById('sportsSelect').value; const div = document.getElementById('partialDetailsDiv'); const input = document.getElementById('sportsPartial');
     if (val === 'Partial') { div.style.display = 'block'; input.required = true; } else { div.style.display = 'none'; input.required = false; input.value = ""; }
-  }
+}
 
-  function toggleIssueDetails(type) {
+function toggleIssueDetails(type) {
     const val = document.getElementById(type + '_issues').value; const div = document.getElementById(type + '_issue_other_div'); const input = document.getElementById(type + '_issue_other');
     if (val === 'Other') { div.style.display = 'block'; input.required = true; } else { div.style.display = 'none'; input.required = false; input.value = ""; }
-  }
+}
 
-  function handleEmisSelection() {
+function handleEmisSelection() {
     const emisInput = document.getElementById('emisInput'); const schoolInput = document.getElementById('monSchoolName'); const val = emisInput.value.trim();
     if (schoolData[val]) { schoolInput.value = schoolData[val].schoolName; } else { emisInput.value = ""; schoolInput.value = ""; }
-  }
+}
 
-  function submitMonitoring(event) {
+// OFFLINE SAVE AND SYNC LOGIC
+function saveOfflineData(type, payload) {
+    let offlineData = JSON.parse(localStorage.getItem('offlineFLN') || '[]');
+    offlineData.push({ type, payload, timestamp: Date.now() });
+    localStorage.setItem('offlineFLN', JSON.stringify(offlineData));
+}
+
+async function syncOfflineData() {
+    let offlineData = JSON.parse(localStorage.getItem('offlineFLN') || '[]');
+    if (offlineData.length === 0) return;
+    
+    document.getElementById('syncBanner').classList.remove('d-none');
+    let failedData = [];
+    
+    for (let item of offlineData) {
+        try {
+            let res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(item.payload)
+            });
+            let data = await res.json();
+            
+            if (data.status === "Exists") {
+                alert(`Offline Sync Failed: A report for EMIS ${item.payload.formObject.emis || item.payload.formObject.cotEmis} on this date already exists.`);
+            }
+        } catch(e) {
+            failedData.push(item); // Keep in queue if fetch actually failed (e.g. dropped connection mid-sync)
+        }
+    }
+    
+    localStorage.setItem('offlineFLN', JSON.stringify(failedData));
+    document.getElementById('syncBanner').classList.add('d-none');
+    if (failedData.length === 0) {
+        console.log("All offline data synced successfully.");
+    }
+}
+
+function submitMonitoring(event) {
     event.preventDefault();
     document.getElementById('btnSubmitMon').innerText = "Saving Data..."; document.getElementById('btnSubmitMon').disabled = true;
-    
+
     const sumInputs = (selector) => { let total = 0; document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); return total; };
     calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); calculatedTotals.B_Present = sumInputs('.b_present');
     calculatedTotals.I_Enrolled = sumInputs('.i_enrolled'); calculatedTotals.I_Present = sumInputs('.i_present');
 
     const formData = new FormData(document.getElementById('monitoringForm'));
-    const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
+    const formObj = Object.fromEntries(formData.entries());
+    formObj.isEdit = isEditMode ? "true" : "false"; // Pass Edit Flag
+    const payload = { action: 'saveMonitoring', formObject: formObj };
+
+    if (!navigator.onLine) {
+        saveOfflineData('monitoring', payload);
+        alert("Device is offline. Monitoring Data saved locally. It will auto-submit when the internet is restored.");
+        proceedToCOTForm();
+        return;
+    }
 
     fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Bypass CORS preflight
-      body: JSON.stringify(payload)
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
-      alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
-      setupCOTForm();
-      document.getElementById('cotTabContainer').classList.remove('d-none');
-      var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); cotTab.show();
-      document.getElementById('monitoringForm').reset(); document.getElementById('monSchoolName').value = "";
-      document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
+        if (data.status === "Exists") {
+            alert("Duplicate Entry Blocked: A report for this Date and EMIS has already been submitted.\n\nPlease go to 'Reporting / Edit' tab to modify the existing record.");
+            document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
+            return;
+        }
+        alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
+        proceedToCOTForm();
     })
-    .catch(err => { alert("Error saving data"); document.getElementById('btnSubmitMon').disabled = false; });
-  }
+    .catch(err => { 
+        alert("Error saving data. Please check your connection."); 
+        document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT";
+        document.getElementById('btnSubmitMon').disabled = false; 
+    });
+}
 
-  function setupCOTForm() {
+function proceedToCOTForm() {
+    setupCOTForm();
+    document.getElementById('cotTabContainer').classList.remove('d-none');
+    var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); cotTab.show();
+    document.getElementById('monitoringForm').reset(); document.getElementById('monSchoolName').value = "";
+    document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
+}
+
+function setupCOTForm() {
     const emis = document.getElementById('emisInput').value;
     document.getElementById('cotEmis').value = emis; document.getElementById('cotSchool').value = schoolData[emis].schoolName; document.getElementById('cotVisitDate').value = document.getElementById('monVisitDate').value;
     const teachers = schoolData[emis].teachers;
     if (teachers.length > 0) {
-      document.getElementById('t1_name').value = teachers[0].name; document.getElementById('t1_cnic').value = teachers[0].cnic; document.getElementById('t1_camp').value = teachers[0].camp;
-      if (teachers[0].camp.toLowerCase().includes("beginner")) { document.getElementById('t1_enrolled').value = calculatedTotals.B_Enrolled; document.getElementById('t1_present').value = calculatedTotals.B_Present; } else { document.getElementById('t1_enrolled').value = calculatedTotals.I_Enrolled; document.getElementById('t1_present').value = calculatedTotals.I_Present; }
+        document.getElementById('t1_name').value = teachers[0].name; document.getElementById('t1_cnic').value = teachers[0].cnic; document.getElementById('t1_camp').value = teachers[0].camp;
+        if (teachers[0].camp.toLowerCase().includes("beginner")) { document.getElementById('t1_enrolled').value = calculatedTotals.B_Enrolled; document.getElementById('t1_present').value = calculatedTotals.B_Present; } else { document.getElementById('t1_enrolled').value = calculatedTotals.I_Enrolled; document.getElementById('t1_present').value = calculatedTotals.I_Present; }
     }
     if (teachers.length > 1) {
-      document.getElementById('t2_name').value = teachers[1].name; document.getElementById('t2_cnic').value = teachers[1].cnic; document.getElementById('t2_camp').value = teachers[1].camp;
-      if (teachers[1].camp.toLowerCase().includes("beginner")) { document.getElementById('t2_enrolled').value = calculatedTotals.B_Enrolled; document.getElementById('t2_present').value = calculatedTotals.B_Present; } else { document.getElementById('t2_enrolled').value = calculatedTotals.I_Enrolled; document.getElementById('t2_present').value = calculatedTotals.I_Present; }
+        document.getElementById('t2_name').value = teachers[1].name; document.getElementById('t2_cnic').value = teachers[1].cnic; document.getElementById('t2_camp').value = teachers[1].camp;
+        if (teachers[1].camp.toLowerCase().includes("beginner")) { document.getElementById('t2_enrolled').value = calculatedTotals.B_Enrolled; document.getElementById('t2_present').value = calculatedTotals.B_Present; } else { document.getElementById('t2_enrolled').value = calculatedTotals.I_Enrolled; document.getElementById('t2_present').value = calculatedTotals.I_Present; }
     }
-  }
+}
 
-  function autoSetTeacher2Time() {
+function autoSetTeacher2Time() {
     const t1_time = document.getElementById('t1_time').value;
     if (!t1_time) return;
     const [hours, minutes] = t1_time.split(':').map(Number);
     let dateObj = new Date(); dateObj.setHours(hours); dateObj.setMinutes(minutes + 30);
     document.getElementById('t2_time').value = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
-  }
+}
 
-  function submitCOT(event) {
+function submitCOT(event) {
     event.preventDefault();
     document.getElementById('btnSubmitCot').innerText = "Saving Data..."; document.getElementById('btnSubmitCot').disabled = true;
-    
+
     const formData = new FormData(document.getElementById('cotForm'));
-    const payload = { action: 'saveCOT', formObject: Object.fromEntries(formData.entries()) };
+    const formObj = Object.fromEntries(formData.entries());
+    formObj.isEdit = isEditMode ? "true" : "false"; // Pass Edit Flag
+    const payload = { action: 'saveCOT', formObject: formObj };
+
+    if (!navigator.onLine) {
+        saveOfflineData('cot', payload);
+        alert("Device is offline. COT Data saved locally. It will auto-submit when the internet is restored.");
+        finishCOTSubmission();
+        return;
+    }
 
     fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
-      alert(`COT Observations ${data.status} Successfully!`);
-      document.getElementById('cotForm').reset();
-      document.getElementById('cotTabContainer').classList.add('d-none');
-      var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
-      document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations"; document.getElementById('btnSubmitCot').disabled = false;
+        if (data.status === "Exists") {
+            alert("Duplicate Entry Blocked: A COT record for this Date and EMIS already exists. Use the edit feature.");
+        } else {
+            alert(`COT Observations ${data.status} Successfully!`);
+        }
+        finishCOTSubmission();
     })
-    .catch(err => { alert("Error saving COT data"); document.getElementById('btnSubmitCot').disabled = false; });
-  }
-
-  function executeSearch() {
-  const start = document.getElementById('filterStart').value; 
-  const end = document.getElementById('filterEnd').value; 
-  const emis = document.getElementById('filterEmis').value.trim();
-  
-  document.getElementById('btnSearchReports').innerText = "Searching...";
-  
-  // Use URLSearchParams to automatically handle encoding and empty values
-  const params = new URLSearchParams({
-    action: 'searchReports',
-    start: start,
-    end: end,
-    emis: emis
-  });
-
-  fetch(`${API_URL}?${params.toString()}`)
-    .then(res => res.json())
-    .then(results => {
-      document.getElementById('btnSearchReports').innerText = "Search";
-      const tbody = document.getElementById('reportsTableBody'); 
-      tbody.innerHTML = "";
-      
-      if(!results || results.length === 0) { 
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger fw-bold">No reports found for this criteria.</td></tr>`; 
-        return; 
-      }
-
-      results.forEach(rep => {
-        // Use encodeURIComponent for the arguments to prevent breaking the onclick string
-        const safeSchoolName = schoolData[rep.emis] ? schoolData[rep.emis].schoolName.replace(/'/g, "\\'") : "Unknown School";
-        
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${rep.date}</td>
-          <td class="fw-bold">${rep.emis}</td>
-          <td>${schoolData[rep.emis]?.schoolName || "Unknown School"}</td>
-          <td class="text-center">
-            <button class="btn btn-sm btn-info text-white fw-bold" onclick="openReportModal('${rep.emis}', '${rep.date}', '${safeSchoolName}')">View</button>
-            <button class="btn btn-sm btn-warning fw-bold ms-1" onclick="loadReportForEdit('${rep.emis}', '${rep.date}')">Edit</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById('btnSearchReports').innerText = "Search";
-      alert("Error fetching reports. Please check your internet connection.");
+    .catch(err => { 
+        alert("Error saving COT data. Please check your connection."); 
+        document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations";
+        document.getElementById('btnSubmitCot').disabled = false; 
     });
 }
-  function openReportModal(emis, dateStr, schoolName) {
+
+function finishCOTSubmission() {
+    document.getElementById('cotForm').reset();
+    document.getElementById('cotTabContainer').classList.add('d-none');
+    var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
+    document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations"; document.getElementById('btnSubmitCot').disabled = false;
+    isEditMode = false; // Reset edit mode after complete cycle
+}
+
+function executeSearch() {
+    const start = document.getElementById('filterStart').value;
+    const end = document.getElementById('filterEnd').value;
+    const emis = document.getElementById('filterEmis').value.trim();
+
+    document.getElementById('btnSearchReports').innerText = "Searching...";
+
+    const params = new URLSearchParams({
+        action: 'searchReports', start: start, end: end, emis: emis
+    });
+
+    fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(results => {
+        document.getElementById('btnSearchReports').innerText = "Search";
+        const tbody = document.getElementById('reportsTableBody');
+        tbody.innerHTML = "";
+
+        if(!results || results.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger fw-bold py-4">No reports found for this criteria.</td></tr>`;
+            return;
+        }
+
+        results.forEach(rep => {
+            const safeSchoolName = schoolData[rep.emis] ? schoolData[rep.emis].schoolName.replace(/'/g, "\\'") : "Unknown School";
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td>${rep.date}</td>
+            <td class="fw-bold">${rep.emis}</td>
+            <td>${schoolData[rep.emis]?.schoolName || "Unknown School"}</td>
+            <td class="text-center">
+            <button class="btn btn-sm btn-info text-white fw-bold shadow-sm" onclick="openReportModal('${rep.emis}', '${rep.date}', '${safeSchoolName}')">View</button>
+            <button class="btn btn-sm btn-warning fw-bold ms-1 shadow-sm" onclick="loadReportForEdit('${rep.emis}', '${rep.date}')">Edit</button>
+            </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error(err);
+        document.getElementById('btnSearchReports').innerText = "Search";
+        alert("Error fetching reports. Please check your internet connection.");
+    });
+}
+
+function openReportModal(emis, dateStr, schoolName) {
     document.getElementById('modalReportTitle').innerText = `Loading Report...`;
     var reportModal = new bootstrap.Modal(document.getElementById('reportModal')); reportModal.show();
-    document.getElementById('modalMonBody').innerHTML = "<tr><td class='text-center'>Fetching Data...</td></tr>"; document.getElementById('modalCotBody').innerHTML = "<tr><td class='text-center'>Fetching Data...</td></tr>";
+    document.getElementById('modalMonBody').innerHTML = "<tr><td class='text-center py-4'>Fetching Data...</td></tr>"; document.getElementById('modalCotBody').innerHTML = "<tr><td class='text-center py-4'>Fetching Data...</td></tr>";
 
     fetch(`${API_URL}?action=getReportDetails&emis=${emis}&date=${dateStr}`)
-      .then(res => res.json())
-      .then(data => {
+    .then(res => res.json())
+    .then(data => {
         document.getElementById('modalReportTitle').innerText = `${schoolName} | EMIS: ${emis} | Date: ${dateStr}`;
-        
+
         let monHtml = "";
-        if (data.monData.length > 0) { for(let i = 0; i < data.monHeaders.length; i++) { monHtml += `<tr><th>${data.monHeaders[i]}</th><td>${data.monData[i] || "-"}</td></tr>`; } } else { monHtml = "<tr><td class='text-center text-danger'>No Monitoring data found.</td></tr>"; }
+        if (data.monData.length > 0) { for(let i = 0; i < data.monHeaders.length; i++) { monHtml += `<tr><th>${data.monHeaders[i]}</th><td>${data.monData[i] || "-"}</td></tr>`; } } 
+        else { monHtml = "<tr><td class='text-center text-danger py-4'>No Monitoring data found.</td></tr>"; }
         document.getElementById('modalMonBody').innerHTML = monHtml;
 
         let cotHtml = "";
-        if (data.cotData.length > 0) { for(let i = 0; i < data.cotHeaders.length; i++) { cotHtml += `<tr><th>${data.cotHeaders[i]}</th><td>${data.cotData[i] || "-"}</td></tr>`; } } else { cotHtml = "<tr><td class='text-center text-danger'>No COT data found.</td></tr>"; }
+        if (data.cotData.length > 0) { for(let i = 0; i < data.cotHeaders.length; i++) { cotHtml += `<tr><th>${data.cotHeaders[i]}</th><td>${data.cotData[i] || "-"}</td></tr>`; } } 
+        else { cotHtml = "<tr><td class='text-center text-danger py-4'>No COT data found.</td></tr>"; }
         document.getElementById('modalCotBody').innerHTML = cotHtml;
-      });
-  }
+    });
+}
 
-  function loadReportForEdit(emis, dateStr) {
+function loadReportForEdit(emis, dateStr) {
     document.getElementById('btnSearchReports').innerText = "Loading Edit Mode...";
-    
+
     fetch(`${API_URL}?action=getReportDetails&emis=${emis}&date=${dateStr}`)
-      .then(res => res.json())
-      .then(data => {
+    .then(res => res.json())
+    .then(data => {
         document.getElementById('btnSearchReports').innerText = "Search";
-        
+
         if (data.monData.length > 0) {
-          for(let i = 0; i < monInputNames.length; i++) {
-            let inputEl = document.querySelector(`[name="${monInputNames[i]}"]`);
-            if (inputEl) inputEl.value = data.monData[i] || "";
-          }
-          handleEmisSelection(); toggleSportsDetails(); toggleIssueDetails('b'); toggleIssueDetails('i');
-        }
-        
-        if (data.cotData.length > 0) {
-          for(let i = 0; i < cotInputNames.length; i++) {
-            let inputEl = document.querySelector(`[name="${cotInputNames[i]}"]`);
-            if (inputEl) inputEl.value = data.cotData[i] || "";
-          }
-          document.getElementById('cotTabContainer').classList.remove('d-none');
+            for(let i = 0; i < monInputNames.length; i++) {
+                let inputEl = document.querySelector(`[name="${monInputNames[i]}"]`);
+                if (inputEl) inputEl.value = data.monData[i] || "";
+            }
+            handleEmisSelection(); toggleSportsDetails(); toggleIssueDetails('b'); toggleIssueDetails('i');
         }
 
+        if (data.cotData.length > 0) {
+            for(let i = 0; i < cotInputNames.length; i++) {
+                let inputEl = document.querySelector(`[name="${cotInputNames[i]}"]`);
+                if (inputEl) inputEl.value = data.cotData[i] || "";
+            }
+            document.getElementById('cotTabContainer').classList.remove('d-none');
+        }
+
+        isEditMode = true; // IMPORTANT: Set flag to allow saving over existing records
         var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
-        alert("Report loaded into the forms! Any changes you submit will UPDATE the existing entry for this Date and EMIS.");
-      });
-  }
+        alert("Report loaded into the forms!\n\nYou are now in EDIT MODE. Any changes you submit will overwrite the existing entry for this Date and EMIS.");
+    });
+}
 </script>
 </body>
 </html>
