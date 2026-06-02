@@ -289,33 +289,67 @@
   }
 
   function submitMonitoring(event) {
-    event.preventDefault();
-    document.getElementById('btnSubmitMon').innerText = "Saving Data..."; document.getElementById('btnSubmitMon').disabled = true;
+  event.preventDefault();
+  
+  const btnSubmit = document.getElementById('btnSubmitMon');
+  btnSubmit.innerText = "Saving Data..."; 
+  btnSubmit.disabled = true;
+  
+  // 1. Calculate Totals
+  const sumInputs = (selector) => { 
+    let total = 0; 
+    document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); 
+    return total; 
+  };
+  calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); 
+  calculatedTotals.B_Present = sumInputs('.b_present');
+  calculatedTotals.I_Enrolled = sumInputs('.i_enrolled'); 
+  calculatedTotals.I_Present = sumInputs('.i_present');
+
+  // 2. Prepare Payload
+  const formData = new FormData(document.getElementById('monitoringForm'));
+  const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
+
+  // 3. Offline Check
+  if (!navigator.onLine) {
+    // Store in LocalStorage if offline
+    localStorage.setItem('pendingMonitoring', JSON.stringify(payload));
+    alert("Saved locally! Sync this data when you reach an area with internet access.");
     
-    const sumInputs = (selector) => { let total = 0; document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); return total; };
-    calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); calculatedTotals.B_Present = sumInputs('.b_present');
-    calculatedTotals.I_Enrolled = sumInputs('.i_enrolled'); calculatedTotals.I_Present = sumInputs('.i_present');
-
-    const formData = new FormData(document.getElementById('monitoringForm'));
-    const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
-
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Bypass CORS preflight
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
-      setupCOTForm();
-      document.getElementById('cotTabContainer').classList.remove('d-none');
-      var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); cotTab.show();
-      document.getElementById('monitoringForm').reset(); document.getElementById('monSchoolName').value = "";
-      document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
-    })
-    .catch(err => { alert("Error saving data"); document.getElementById('btnSubmitMon').disabled = false; });
+    // Reset button state so the user can interact with the form if needed
+    btnSubmit.innerText = "Submit Monitoring Data & Open COT"; 
+    btnSubmit.disabled = false;
+    return; 
   }
 
+  // 4. Online Fetch Submission
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Bypass CORS preflight
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
+    setupCOTForm();
+    
+    // Switch to COT Tab
+    document.getElementById('cotTabContainer').classList.remove('d-none');
+    var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); 
+    cotTab.show();
+    
+    // Reset Form & Button
+    document.getElementById('monitoringForm').reset(); 
+    document.getElementById('monSchoolName').value = "";
+    btnSubmit.innerText = "Submit Monitoring Data & Open COT"; 
+    btnSubmit.disabled = false;
+  })
+  .catch(err => { 
+    alert("Error saving data"); 
+    btnSubmit.innerText = "Submit Monitoring Data & Open COT";
+    btnSubmit.disabled = false; 
+  });
+}
   function setupCOTForm() {
     const emis = document.getElementById('emisInput').value;
     document.getElementById('cotEmis').value = emis; document.getElementById('cotSchool').value = schoolData[emis].schoolName; document.getElementById('cotVisitDate').value = document.getElementById('monVisitDate').value;
