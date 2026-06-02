@@ -436,6 +436,19 @@
         alert("Report loaded into the forms! Any changes you submit will UPDATE the existing entry for this Date and EMIS.");
       });
   }
+  // Register Service Worker for Offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('Service Worker Registered'))
+      .catch(err => console.log('SW Registration failed', err));
+  });
+}
+
+// Logic to warn user if they are offline
+window.addEventListener('offline', () => {
+  alert("You are currently offline. Forms will be saved to your device and synced when you go back online.");
+});
 </script>
 </body>
 </html>
