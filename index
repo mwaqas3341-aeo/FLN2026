@@ -222,7 +222,7 @@
   // ==============================================================
   // IMPORTANT: PASTE YOUR NEW GOOGLE WEB APP URL HERE
   // ==============================================================
-  const API_URL = "YOUR_WEB_APP_URL_HERE"; 
+  const API_URL = "https://script.google.com/macros/s/AKfycbzH_6BcMMQGPVZWbgTKzxY-8x2mQBgVTLjAaq1wzJRD4-Tbo8bX7HekN5zkBwFP32JTcA/exec"; 
   
   let schoolData = {};
   let calculatedTotals = { B_Enrolled: 0, B_Present: 0, I_Enrolled: 0, I_Present: 0 };
