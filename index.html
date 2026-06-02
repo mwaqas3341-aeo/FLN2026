@@ -422,7 +422,8 @@ async function syncOfflineData() {
 
 function submitMonitoring(event) {
     event.preventDefault();
-    document.getElementById('btnSubmitMon').innerText = "Saving Data..."; document.getElementById('btnSubmitMon').disabled = true;
+    document.getElementById('btnSubmitMon').innerText = "Checking Database..."; 
+    document.getElementById('btnSubmitMon').disabled = true;
 
     const sumInputs = (selector) => { let total = 0; document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); return total; };
     calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); calculatedTotals.B_Present = sumInputs('.b_present');
@@ -448,10 +449,18 @@ function submitMonitoring(event) {
     .then(res => res.json())
     .then(data => {
         if (data.status === "Exists") {
-            alert("Duplicate Entry Blocked: A report for this Date and EMIS has already been submitted.\n\nPlease go to 'Reporting / Edit' tab to modify the existing record.");
-            document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
-            return;
+            // === NEW: LOCK THE FORM ON DUPLICATE ===
+            alert("⚠️ DUPLICATE ENTRY BLOCKED!\n\nA report for this Date and EMIS has already been submitted.\n\nTo prevent errors, this form is now LOCKED. Please go to the '3. Reporting / Edit' tab to modify the existing record.");
+            
+            const formElements = document.getElementById('monitoringForm').elements;
+            for (let i = 0; i < formElements.length; i++) {
+                formElements[i].disabled = true;
+            }
+            document.getElementById('btnSubmitMon').innerText = "🔒 Form Locked (Duplicate)";
+            document.getElementById('btnSubmitMon').classList.replace('btn-primary', 'btn-danger');
+            return; // Stop execution here
         }
+        
         alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
         proceedToCOTForm();
     })
@@ -461,7 +470,6 @@ function submitMonitoring(event) {
         document.getElementById('btnSubmitMon').disabled = false; 
     });
 }
-
 function proceedToCOTForm() {
     setupCOTForm();
     document.getElementById('cotTabContainer').classList.remove('d-none');
@@ -516,7 +524,15 @@ function submitCOT(event) {
     .then(res => res.json())
     .then(data => {
         if (data.status === "Exists") {
-            alert("Duplicate Entry Blocked: A COT record for this Date and EMIS already exists. Use the edit feature.");
+             // === NEW: LOCK COT FORM ON DUPLICATE ===
+            alert("⚠️ DUPLICATE ENTRY BLOCKED!\n\nA COT record for this Date and EMIS already exists.");
+            const formElements = document.getElementById('cotForm').elements;
+            for (let i = 0; i < formElements.length; i++) {
+                formElements[i].disabled = true;
+            }
+            document.getElementById('btnSubmitCot').innerText = "🔒 Form Locked (Duplicate)";
+            document.getElementById('btnSubmitCot').classList.replace('btn-warning', 'btn-danger');
+            return;
         } else {
             alert(`COT Observations ${data.status} Successfully!`);
         }
@@ -528,7 +544,6 @@ function submitCOT(event) {
         document.getElementById('btnSubmitCot').disabled = false; 
     });
 }
-
 function finishCOTSubmission() {
     document.getElementById('cotForm').reset();
     document.getElementById('cotTabContainer').classList.add('d-none');
