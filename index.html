@@ -310,27 +310,9 @@
   const formData = new FormData(document.getElementById('monitoringForm'));
   const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
 
-  // 3. Offline Check
-  if (!navigator.onLine) {
-    // Store in LocalStorage if offline
-    localStorage.setItem('pendingMonitoring', JSON.stringify(payload));
-    alert("Saved locally! Sync this data when you reach an area with internet access.");
-    
-    // Reset button state so the user can interact with the form if needed
-    btnSubmit.innerText = "Submit Monitoring Data & Open COT"; 
-    btnSubmit.disabled = false;
-    return; 
-  }
-
-  // 4. Online Fetch Submission
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Bypass CORS preflight
-    body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
-  .then(data => {
-    alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
+  // 3. UI Transition Helper (Runs on both Online Success & Offline Save)
+  const handleSuccessUI = (alertMessage) => {
+    alert(alertMessage);
     setupCOTForm();
     
     // Switch to COT Tab
@@ -343,6 +325,28 @@
     document.getElementById('monSchoolName').value = "";
     btnSubmit.innerText = "Submit Monitoring Data & Open COT"; 
     btnSubmit.disabled = false;
+  };
+
+  // 4. Offline Handling
+  if (!navigator.onLine) {
+    // Store in LocalStorage if offline
+    localStorage.setItem('pendingMonitoring', JSON.stringify(payload));
+    
+    // Trigger the UI transition with an offline message
+    handleSuccessUI("Saved locally! Sync this data later. Opening Dual-COT Form.");
+    return; 
+  }
+
+  // 5. Online Fetch Submission
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    // Trigger the UI transition with an online success message
+    handleSuccessUI(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
   })
   .catch(err => { 
     alert("Error saving data"); 
