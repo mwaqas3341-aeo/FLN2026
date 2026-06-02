@@ -289,71 +289,33 @@
   }
 
   function submitMonitoring(event) {
-  event.preventDefault();
-  
-  const btnSubmit = document.getElementById('btnSubmitMon');
-  btnSubmit.innerText = "Saving Data..."; 
-  btnSubmit.disabled = true;
-  
-  // 1. Calculate Totals
-  const sumInputs = (selector) => { 
-    let total = 0; 
-    document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); 
-    return total; 
-  };
-  calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); 
-  calculatedTotals.B_Present = sumInputs('.b_present');
-  calculatedTotals.I_Enrolled = sumInputs('.i_enrolled'); 
-  calculatedTotals.I_Present = sumInputs('.i_present');
-
-  // 2. Prepare Payload
-  const formData = new FormData(document.getElementById('monitoringForm'));
-  const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
-
-  // 3. UI Transition Helper (Runs on both Online Success & Offline Save)
-  const handleSuccessUI = (alertMessage) => {
-    alert(alertMessage);
-    setupCOTForm();
+    event.preventDefault();
+    document.getElementById('btnSubmitMon').innerText = "Saving Data..."; document.getElementById('btnSubmitMon').disabled = true;
     
-    // Switch to COT Tab
-    document.getElementById('cotTabContainer').classList.remove('d-none');
-    var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); 
-    cotTab.show();
-    
-    // Reset Form & Button
-    document.getElementById('monitoringForm').reset(); 
-    document.getElementById('monSchoolName').value = "";
-    btnSubmit.innerText = "Submit Monitoring Data & Open COT"; 
-    btnSubmit.disabled = false;
-  };
+    const sumInputs = (selector) => { let total = 0; document.querySelectorAll(selector).forEach(el => total += (parseInt(el.value) || 0)); return total; };
+    calculatedTotals.B_Enrolled = sumInputs('.b_enrolled'); calculatedTotals.B_Present = sumInputs('.b_present');
+    calculatedTotals.I_Enrolled = sumInputs('.i_enrolled'); calculatedTotals.I_Present = sumInputs('.i_present');
 
-  // 4. Offline Handling
-  if (!navigator.onLine) {
-    // Store in LocalStorage if offline
-    localStorage.setItem('pendingMonitoring', JSON.stringify(payload));
-    
-    // Trigger the UI transition with an offline message
-    handleSuccessUI("Saved locally! Sync this data later. Opening Dual-COT Form.");
-    return; 
+    const formData = new FormData(document.getElementById('monitoringForm'));
+    const payload = { action: 'saveMonitoring', formObject: Object.fromEntries(formData.entries()) };
+
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Bypass CORS preflight
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
+      setupCOTForm();
+      document.getElementById('cotTabContainer').classList.remove('d-none');
+      var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); cotTab.show();
+      document.getElementById('monitoringForm').reset(); document.getElementById('monSchoolName').value = "";
+      document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
+    })
+    .catch(err => { alert("Error saving data"); document.getElementById('btnSubmitMon').disabled = false; });
   }
 
-  // 5. Online Fetch Submission
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
-  .then(data => {
-    // Trigger the UI transition with an online success message
-    handleSuccessUI(`Monitoring Data ${data.status}! Opening Dual-COT Form.`);
-  })
-  .catch(err => { 
-    alert("Error saving data"); 
-    btnSubmit.innerText = "Submit Monitoring Data & Open COT";
-    btnSubmit.disabled = false; 
-  });
-}
   function setupCOTForm() {
     const emis = document.getElementById('emisInput').value;
     document.getElementById('cotEmis').value = emis; document.getElementById('cotSchool').value = schoolData[emis].schoolName; document.getElementById('cotVisitDate').value = document.getElementById('monVisitDate').value;
@@ -377,61 +339,28 @@
   }
 
   function submitCOT(event) {
-  event.preventDefault();
-  
-  const btnSubmit = document.getElementById('btnSubmitCOT'); // Adjust ID as needed
-  btnSubmit.innerText = "Saving COT Data..."; 
-  btnSubmit.disabled = true;
-
-  // 1. Prepare Payload
-  const formData = new FormData(document.getElementById('cotForm')); // Adjust ID as needed
-  const payload = { 
-    action: 'saveCOT', // Make sure your server-side script knows how to handle this action
-    formObject: Object.fromEntries(formData.entries()) 
-  };
-
-  // 2. UI Transition Helper
-  const handleSuccessUI = (message) => {
-    alert(message);
-    document.getElementById('cotForm').reset();
-    btnSubmit.innerText = "Submit COT Data"; 
-    btnSubmit.disabled = false;
+    event.preventDefault();
+    document.getElementById('btnSubmitCot').innerText = "Saving Data..."; document.getElementById('btnSubmitCot').disabled = true;
     
-    // Optional: Hide the COT tab and go back to the main dashboard
-    // document.getElementById('cotTabContainer').classList.add('d-none');
-  };
+    const formData = new FormData(document.getElementById('cotForm'));
+    const payload = { action: 'saveCOT', formObject: Object.fromEntries(formData.entries()) };
 
-  // 3. Offline Handling
-  if (!navigator.onLine) {
-    localStorage.setItem('pendingCOT', JSON.stringify(payload));
-    handleSuccessUI("COT Data saved locally! It will sync when you are back online.");
-    return; 
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(`COT Observations ${data.status} Successfully!`);
+      document.getElementById('cotForm').reset();
+      document.getElementById('cotTabContainer').classList.add('d-none');
+      var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
+      document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations"; document.getElementById('btnSubmitCot').disabled = false;
+    })
+    .catch(err => { alert("Error saving COT data"); document.getElementById('btnSubmitCot').disabled = false; });
   }
 
-  // 4. Online Fetch Submission
-  fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Network response was not ok");
-    return res.json();
-  })
-  .then(data => {
-    if(data.status === "Success" || data.status === "Saved") {
-        handleSuccessUI(`COT Data ${data.status}!`);
-    } else {
-        throw new Error(data.message || "Server returned an error status");
-    }
-  })
-  .catch(err => { 
-    console.error("COT Submission Error:", err);
-    alert("Error saving COT data. Check your connection or server logs."); 
-    btnSubmit.innerText = "Submit COT Data";
-    btnSubmit.disabled = false; 
-  });
-}
   function executeSearch() {
     const start = document.getElementById('filterStart').value; const end = document.getElementById('filterEnd').value; const emis = document.getElementById('filterEmis').value.trim();
     document.getElementById('btnSearchReports').innerText = "Searching...";
@@ -507,19 +436,6 @@
         alert("Report loaded into the forms! Any changes you submit will UPDATE the existing entry for this Date and EMIS.");
       });
   }
-  // Register Service Worker for Offline support
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('Service Worker Registered'))
-      .catch(err => console.log('SW Registration failed', err));
-  });
-}
-
-// Logic to warn user if they are offline
-window.addEventListener('offline', () => {
-  alert("You are currently offline. Forms will be saved to your device and synced when you go back online.");
-});
 </script>
 </body>
 </html>
