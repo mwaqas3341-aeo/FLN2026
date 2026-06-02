@@ -362,32 +362,55 @@
   }
 
   function executeSearch() {
-    const start = document.getElementById('filterStart').value; const end = document.getElementById('filterEnd').value; const emis = document.getElementById('filterEmis').value.trim();
-    document.getElementById('btnSearchReports').innerText = "Searching...";
-    
-    fetch(`${API_URL}?action=searchReports&start=${start}&end=${end}&emis=${emis}`)
-      .then(res => res.json())
-      .then(results => {
-        document.getElementById('btnSearchReports').innerText = "Search";
-        const tbody = document.getElementById('reportsTableBody'); tbody.innerHTML = "";
+  const start = document.getElementById('filterStart').value; 
+  const end = document.getElementById('filterEnd').value; 
+  const emis = document.getElementById('filterEmis').value.trim();
+  
+  document.getElementById('btnSearchReports').innerText = "Searching...";
+  
+  // Use URLSearchParams to automatically handle encoding and empty values
+  const params = new URLSearchParams({
+    action: 'searchReports',
+    start: start,
+    end: end,
+    emis: emis
+  });
+
+  fetch(`${API_URL}?${params.toString()}`)
+    .then(res => res.json())
+    .then(results => {
+      document.getElementById('btnSearchReports').innerText = "Search";
+      const tbody = document.getElementById('reportsTableBody'); 
+      tbody.innerHTML = "";
+      
+      if(!results || results.length === 0) { 
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger fw-bold">No reports found for this criteria.</td></tr>`; 
+        return; 
+      }
+
+      results.forEach(rep => {
+        // Use encodeURIComponent for the arguments to prevent breaking the onclick string
+        const safeSchoolName = schoolData[rep.emis] ? schoolData[rep.emis].schoolName.replace(/'/g, "\\'") : "Unknown School";
         
-        if(results.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger fw-bold">No reports found.</td></tr>`; return; }
-
-        results.forEach(rep => {
-          let schoolName = schoolData[rep.emis] ? schoolData[rep.emis].schoolName : "Unknown School";
-          let tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${rep.date}</td><td class="fw-bold">${rep.emis}</td><td>${schoolName}</td>
-            <td class="text-center">
-              <button class="btn btn-sm btn-info text-white fw-bold" onclick="openReportModal('${rep.emis}', '${rep.date}', '${schoolName}')">View</button>
-              <button class="btn btn-sm btn-warning fw-bold ms-1" onclick="loadReportForEdit('${rep.emis}', '${rep.date}')">Edit</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${rep.date}</td>
+          <td class="fw-bold">${rep.emis}</td>
+          <td>${schoolData[rep.emis]?.schoolName || "Unknown School"}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-info text-white fw-bold" onclick="openReportModal('${rep.emis}', '${rep.date}', '${safeSchoolName}')">View</button>
+            <button class="btn btn-sm btn-warning fw-bold ms-1" onclick="loadReportForEdit('${rep.emis}', '${rep.date}')">Edit</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
-  }
-
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById('btnSearchReports').innerText = "Search";
+      alert("Error fetching reports. Please check your internet connection.");
+    });
+}
   function openReportModal(emis, dateStr, schoolName) {
     document.getElementById('modalReportTitle').innerText = `Loading Report...`;
     var reportModal = new bootstrap.Modal(document.getElementById('reportModal')); reportModal.show();
