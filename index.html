@@ -377,28 +377,61 @@
   }
 
   function submitCOT(event) {
-    event.preventDefault();
-    document.getElementById('btnSubmitCot').innerText = "Saving Data..."; document.getElementById('btnSubmitCot').disabled = true;
-    
-    const formData = new FormData(document.getElementById('cotForm'));
-    const payload = { action: 'saveCOT', formObject: Object.fromEntries(formData.entries()) };
+  event.preventDefault();
+  
+  const btnSubmit = document.getElementById('btnSubmitCOT'); // Adjust ID as needed
+  btnSubmit.innerText = "Saving COT Data..."; 
+  btnSubmit.disabled = true;
 
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(`COT Observations ${data.status} Successfully!`);
-      document.getElementById('cotForm').reset();
-      document.getElementById('cotTabContainer').classList.add('d-none');
-      var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
-      document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations"; document.getElementById('btnSubmitCot').disabled = false;
-    })
-    .catch(err => { alert("Error saving COT data"); document.getElementById('btnSubmitCot').disabled = false; });
+  // 1. Prepare Payload
+  const formData = new FormData(document.getElementById('cotForm')); // Adjust ID as needed
+  const payload = { 
+    action: 'saveCOT', // Make sure your server-side script knows how to handle this action
+    formObject: Object.fromEntries(formData.entries()) 
+  };
+
+  // 2. UI Transition Helper
+  const handleSuccessUI = (message) => {
+    alert(message);
+    document.getElementById('cotForm').reset();
+    btnSubmit.innerText = "Submit COT Data"; 
+    btnSubmit.disabled = false;
+    
+    // Optional: Hide the COT tab and go back to the main dashboard
+    // document.getElementById('cotTabContainer').classList.add('d-none');
+  };
+
+  // 3. Offline Handling
+  if (!navigator.onLine) {
+    localStorage.setItem('pendingCOT', JSON.stringify(payload));
+    handleSuccessUI("COT Data saved locally! It will sync when you are back online.");
+    return; 
   }
 
+  // 4. Online Fetch Submission
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Network response was not ok");
+    return res.json();
+  })
+  .then(data => {
+    if(data.status === "Success" || data.status === "Saved") {
+        handleSuccessUI(`COT Data ${data.status}!`);
+    } else {
+        throw new Error(data.message || "Server returned an error status");
+    }
+  })
+  .catch(err => { 
+    console.error("COT Submission Error:", err);
+    alert("Error saving COT data. Check your connection or server logs."); 
+    btnSubmit.innerText = "Submit COT Data";
+    btnSubmit.disabled = false; 
+  });
+}
   function executeSearch() {
     const start = document.getElementById('filterStart').value; const end = document.getElementById('filterEnd').value; const emis = document.getElementById('filterEmis').value.trim();
     document.getElementById('btnSearchReports').innerText = "Searching...";
