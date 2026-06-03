@@ -3,64 +3,349 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FLN Camp Dashboard</title>
+<title>FLN Camp Monitoring System — Government of Punjab</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* --- New Gradient Theme --- */
+/* ============================================================
+   OFFICIAL GOVERNMENT THEME — FLN Camp Monitoring System
+   Government of Punjab | School Education Department
+   ============================================================ */
+
+:root {
+    --navy:       #0d2146;
+    --navy-dark:  #081530;
+    --navy-mid:   #163060;
+    --gold:       #b8972a;
+    --gold-light: #d4af37;
+    --gold-pale:  #f5edcc;
+    --white:      #ffffff;
+    --off-white:  #f7f8fa;
+    --border:     #c8d0dc;
+    --text:       #1a1a2e;
+    --text-muted: #5a6478;
+    --success:    #1a5c38;
+    --info-blue:  #1b3d6e;
+    --warn-brown: #7a3e00;
+    --red:        #8b1a1a;
+}
+
+* { box-sizing: border-box; }
+
 body {
-    background: linear-gradient(135deg, #0a0a0a 0%, #003311 50%, #331500 100%);
-    background-attachment: fixed;
-    color: #333;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e8ecf2;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(13,33,70,0.04) 39px, rgba(13,33,70,0.04) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(13,33,70,0.04) 39px, rgba(13,33,70,0.04) 40px);
+    color: var(--text);
+    font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+    font-size: 0.95rem;
     min-height: 100vh;
 }
 
-/* Main Container and Cards styling for the new theme */
-.container { position: relative; z-index: 1; }
-h2.text-center { color: #f4f7f6; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
-.card { margin-bottom: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.3); border:none; background-color: rgba(255, 255, 255, 0.96); border-radius: 12px; overflow: hidden; }
-.card-header { background: linear-gradient(90deg, #004d00, #0a0a0a); color: #ff9900 !important; font-weight: bold; letter-spacing: 0.5px; border-bottom: 2px solid #ff9900; }
-.form-label { font-weight: 600; font-size: 0.9rem; color: #111; }
-input[readonly] { background-color: #e9ecef !important; border: 1px dashed #ccc; }
-.table-details th { width: 40%; background-color: #f8f9fa; }
-
-/* Customizing specific section headers */
-.card-header.bg-success { background: linear-gradient(90deg, #1e5631, #0a0a0a) !important; color: #ff9900 !important; }
-.card-header.bg-info { background: linear-gradient(90deg, #2a4b7c, #0a0a0a) !important; color: #ff9900 !important; }
-.card-header.bg-primary { background: linear-gradient(90deg, #0d6efd, #0a0a0a) !important; color: #ff9900 !important; }
-.card-header.bg-warning { background: linear-gradient(90deg, #cc5500, #0a0a0a) !important; color: #fff !important; border-bottom: 2px solid #000; }
-.card-header.bg-secondary { background: linear-gradient(90deg, #444, #0a0a0a) !important; }
-
-/* Customizing Buttons to fit Theme */
-.btn-primary { background-color: #004d00; border-color: #003311; }
-.btn-primary:hover { background-color: #003311; border-color: #001a08; }
-.btn-warning { background-color: #cc5500; border-color: #993d00; color: white; }
-.btn-warning:hover { background-color: #993d00; border-color: #662900; color: white; }
-
-/* --- Digital Clock Styling --- */
-#clockContainer {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background-color: #0a0a0a;
-    color: #ff9900;
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: 2px solid #ff9900;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.6);
-    text-align: center;
-    z-index: 1000;
+/* ── OFFICIAL HEADER BANNER ── */
+.gov-header {
+    background: var(--navy-dark);
+    border-bottom: 4px solid var(--gold);
+    padding: 0;
+    position: relative;
 }
-#clockTime { font-size: 1.6rem; font-weight: bold; font-family: 'Courier New', Courier, monospace; line-height: 1; }
-#clockDate { font-size: 0.85rem; margin-top: 4px; font-weight: 500; color: #ccc;}
+.gov-header-stripe {
+    height: 5px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0px, var(--gold) 20px, var(--gold-light) 20px, var(--gold-light) 22px, transparent 22px, transparent 28px);
+}
+.gov-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    gap: 20px;
+}
+.gov-emblem {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--gold-pale);
+    border: 3px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 4px rgba(184,151,42,0.25);
+}
+.gov-titles { flex: 1; text-align: center; }
+.gov-title-main {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    margin: 0;
+}
+.gov-title-sub {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+.gov-title-dept {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.85);
+    font-weight: 600;
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+}
+
+/* ── CLOCK ── */
+#clockContainer {
+    text-align: right;
+    flex-shrink: 0;
+    min-width: 160px;
+}
+#clockTime {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1;
+    letter-spacing: 0.05em;
+}
+#clockDate {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 3px;
+}
+
+/* ── NAV TABS ── */
+.gov-nav {
+    background: var(--navy);
+    border-bottom: 3px solid var(--gold);
+    padding: 0 16px;
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+}
+.gov-nav .nav-link {
+    border: none;
+    border-radius: 0;
+    border-top: 3px solid transparent;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 12px 22px;
+    background: transparent;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.gov-nav .nav-link:hover {
+    color: var(--gold-light);
+    background: rgba(255,255,255,0.06);
+}
+.gov-nav .nav-link.active {
+    color: var(--gold-light);
+    background: rgba(255,255,255,0.1);
+    border-top: 3px solid var(--gold-light);
+}
+
+/* ── MAIN CONTAINER ── */
+.container { position: relative; z-index: 1; max-width: 1100px; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.02em;
+    border-left: 4px solid var(--gold);
+    padding-left: 12px;
+    margin: 24px 0 16px;
+}
+
+/* ── CARDS ── */
+.card {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--white);
+    box-shadow: 0 2px 8px rgba(13,33,70,0.08), 0 1px 2px rgba(13,33,70,0.05);
+}
+
+/* ── CARD HEADERS (all unified official style) ── */
+.card-header,
+.card-header.bg-success,
+.card-header.bg-info,
+.card-header.bg-primary,
+.card-header.bg-warning,
+.card-header.bg-secondary,
+.card-header.bg-dark {
+    background: var(--navy) !important;
+    color: var(--gold-light) !important;
+    font-family: 'Source Sans 3', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    border-bottom: 2px solid var(--gold) !important;
+    padding: 10px 16px !important;
+    border-radius: 0 !important;
+}
+
+/* Beginner = deep green stripe */
+.card-header.bg-success { background: var(--success) !important; border-left: 5px solid var(--gold) !important; }
+/* Intermediate = deep blue */
+.card-header.bg-info    { background: var(--info-blue) !important; border-left: 5px solid var(--gold) !important; }
+/* Teacher 1 = navy */
+.card-header.bg-primary { background: var(--navy-mid) !important; border-left: 5px solid var(--gold-light) !important; }
+/* Teacher 2 = warm brown-navy */
+.card-header.bg-warning { background: var(--warn-brown) !important; border-left: 5px solid var(--gold-light) !important; }
+
+/* ── FORM ELEMENTS ── */
+.form-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--navy);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.form-control, .form-select {
+    border-radius: 0;
+    border: 1px solid #b0bac8;
+    font-size: 0.92rem;
+    color: var(--text);
+    background-color: #fafbfc;
+    padding: 7px 10px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(13,33,70,0.12);
+    background-color: var(--white);
+}
+input[readonly] {
+    background-color: #eef1f6 !important;
+    border: 1px solid #c5cdd8 !important;
+    color: var(--text-muted) !important;
+    font-style: italic;
+}
+textarea.form-control { min-height: 70px; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+    background-color: var(--navy);
+    border-color: var(--navy-dark);
+    border-radius: 0;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    transition: all 0.2s;
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--navy-dark);
+    border-color: #000;
+    box-shadow: 0 4px 12px rgba(13,33,70,0.35);
+}
+.btn-warning {
+    background-color: var(--warn-brown);
+    border-color: #5a2d00;
+    border-radius: 0;
+    color: var(--gold-light);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    transition: all 0.2s;
+}
+.btn-warning:hover {
+    background-color: #5a2d00;
+    color: var(--gold-light);
+    box-shadow: 0 4px 12px rgba(90,45,0,0.35);
+}
+.btn-dark {
+    border-radius: 0;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+
+/* ── TABLES ── */
+.table { font-size: 0.9rem; margin-bottom: 0; }
+.table thead.table-dark th {
+    background: var(--navy) !important;
+    color: var(--gold-light) !important;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-color: var(--navy-mid);
+    padding: 10px 12px;
+}
+.table-striped > tbody > tr:nth-of-type(odd) > * { background-color: rgba(13,33,70,0.03); }
+.table-hover > tbody > tr:hover > * { background-color: var(--gold-pale); }
+.table-details th {
+    width: 42%;
+    background-color: #f0f3f8;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--navy);
+    font-weight: 700;
+    border-color: var(--border);
+}
+.table-details td { color: var(--text); border-color: var(--border); }
+
+/* ── MODAL ── */
+.modal-header.bg-dark {
+    background: var(--navy-dark) !important;
+    border-bottom: 3px solid var(--gold) !important;
+}
+.modal-title.text-warning { color: var(--gold-light) !important; font-family: 'EB Garamond', Georgia, serif; font-size: 1.1rem; }
+.modal-body.bg-light { background: var(--off-white) !important; }
+.nav-tabs .nav-link { border-radius: 0; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* ── LOADING ── */
+#loadingOverlay { padding-top: 80px; }
+.spinner-border.text-warning { color: var(--gold) !important; }
+#loadingText { color: rgba(255,255,255,0.8); font-family: 'EB Garamond', serif; }
+
+/* ── OFFLINE / SYNC BANNERS ── */
+.alert-danger { border-radius: 0; font-size: 0.85rem; letter-spacing: 0.04em; }
+.alert-success { border-radius: 0; font-size: 0.85rem; letter-spacing: 0.04em; }
+
+/* ── OFFICIAL FOOTER ── */
+.gov-footer {
+    background: var(--navy-dark);
+    border-top: 3px solid var(--gold);
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px;
+    margin-top: 40px;
+}
+
+/* ── DROPDOWN ── */
+.dropdown-menu { border-radius: 0; border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(13,33,70,0.15); }
+.dropdown-item { font-size: 0.88rem; font-weight: 600; padding: 8px 16px; letter-spacing: 0.02em; }
+.dropdown-item:hover { background-color: var(--gold-pale); }
 
 @media (max-width: 992px) {
-    #clockContainer {
-        position: relative;
-        top: 0; right: 0;
-        margin: 15px auto 25px auto;
-        width: fit-content;
-    }
+    .gov-header-inner { flex-direction: column; text-align: center; padding: 14px 16px; }
+    #clockContainer { text-align: center; min-width: auto; }
+    .gov-nav { flex-wrap: wrap; }
+    .gov-nav .nav-link { font-size: 0.78rem; padding: 9px 12px; }
 }
 </style>
 </head>
@@ -74,10 +359,29 @@ input[readonly] { background-color: #e9ecef !important; border: 1px dashed #ccc;
     Internet restored! Syncing offline data...
 </div>
 
-<div id="clockContainer">
-    <div id="clockTime">--:--:-- --</div>
-    <div id="clockDate">---</div>
-</div>
+<!-- OFFICIAL GOVERNMENT HEADER -->
+<header class="gov-header">
+    <div class="gov-header-stripe"></div>
+    <div class="gov-header-inner">
+        <div class="gov-emblem">🏛️</div>
+        <div class="gov-titles">
+            <div class="gov-title-sub">Government of Punjab — Pakistan</div>
+            <h1 class="gov-title-main">FLN Camp Monitoring System</h1>
+            <div class="gov-title-dept">School Education Department &nbsp;|&nbsp; Field Monitoring Unit</div>
+        </div>
+        <div id="clockContainer">
+            <div id="clockTime">--:--:-- --</div>
+            <div id="clockDate">---</div>
+        </div>
+    </div>
+</header>
+
+<!-- OFFICIAL NAV BAR -->
+<nav class="gov-nav" id="dashboardTabs" role="tablist">
+<button class="nav-link active" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab">1. Monitoring Form</button>
+<button class="nav-link d-none" id="cot-tab" data-bs-toggle="tab" data-bs-target="#cot" type="button" role="tab" style="display:none!important;">2. COT Form</button>
+<button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#reporting" type="button" role="tab">3. Reporting / Edit</button>
+</nav>
 
 <div id="loadingOverlay" class="text-center mt-5">
 <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;"></div>
@@ -85,19 +389,6 @@ input[readonly] { background-color: #e9ecef !important; border: 1px dashed #ccc;
 </div>
 
 <div class="container mt-4 mb-5 d-none" id="mainContainer">
-<h2 class="text-center mb-4">FLN Camp Dashboard</h2>
-
-<ul class="nav nav-pills nav-justified mb-4" id="dashboardTabs" role="tablist">
-<li class="nav-item" role="presentation">
-<button class="nav-link active fw-bold border" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab" style="background-color: #004d00; color: white;">1. Monitoring Form</button>
-</li>
-<li class="nav-item d-none" id="cotTabContainer" role="presentation">
-<button class="nav-link fw-bold border" id="cot-tab" data-bs-toggle="tab" data-bs-target="#cot" type="button" role="tab" style="background-color: #cc5500; color: white;">2. COT Form</button>
-</li>
-<li class="nav-item" role="presentation">
-<button class="nav-link bg-dark text-white fw-bold ms-2 border" id="report-tab" data-bs-toggle="tab" data-bs-target="#reporting" type="button" role="tab">3. Reporting / Edit</button>
-</li>
-</ul>
 
 <div class="tab-content" id="myTabContent">
 
@@ -258,8 +549,8 @@ input[readonly] { background-color: #e9ecef !important; border: 1px dashed #ccc;
 </div>
 <div class="modal-body bg-light">
 <ul class="nav nav-tabs mb-3" role="tablist">
-<li class="nav-item"><a class="nav-link active fw-bold" data-bs-toggle="tab" href="#modalMonTab" style="color:#004d00;">Monitoring Data</a></li>
-<li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#modalCotTab" style="color:#cc5500;">COT Data</a></li>
+<li class="nav-item"><a class="nav-link active fw-bold" data-bs-toggle="tab" href="#modalMonTab" style="color: var(--navy);">Monitoring Data</a></li>
+<li class="nav-item"><a class="nav-link fw-bold" data-bs-toggle="tab" href="#modalCotTab" style="color: var(--warn-brown);">COT Data</a></li>
 </ul>
 <div class="tab-content">
 <div class="tab-pane fade show active" id="modalMonTab">
@@ -472,7 +763,7 @@ function submitMonitoring(event) {
 }
 function proceedToCOTForm() {
     setupCOTForm();
-    document.getElementById('cotTabContainer').classList.remove('d-none');
+    document.getElementById('cot-tab').style.display = 'block';
     var cotTab = new bootstrap.Tab(document.getElementById('cot-tab')); cotTab.show();
     document.getElementById('monitoringForm').reset(); document.getElementById('monSchoolName').value = "";
     document.getElementById('btnSubmitMon').innerText = "Submit Monitoring Data & Open COT"; document.getElementById('btnSubmitMon').disabled = false;
@@ -546,7 +837,7 @@ function submitCOT(event) {
 }
 function finishCOTSubmission() {
     document.getElementById('cotForm').reset();
-    document.getElementById('cotTabContainer').classList.add('d-none');
+    document.getElementById('cot-tab').style.display = 'none';
     var monTab = new bootstrap.Tab(document.getElementById('monitoring-tab')); monTab.show();
     document.getElementById('btnSubmitCot').innerText = "Submit Both COT Observations"; document.getElementById('btnSubmitCot').disabled = false;
     isEditMode = false; // Reset edit mode after complete cycle
@@ -702,7 +993,7 @@ function loadReportForEdit(emis, dateStr) {
                 }
                 inputEl.value = val;
             }
-            document.getElementById('cotTabContainer').classList.remove('d-none');
+            document.getElementById('cot-tab').style.display = 'block';
         }
 
         isEditMode = true; // IMPORTANT: Set flag to allow saving over existing records
@@ -711,5 +1002,8 @@ function loadReportForEdit(emis, dateStr) {
     });
 }
 </script>
+<footer class="gov-footer">
+    FLN Camp Monitoring System &nbsp;|&nbsp; School Education Department, Government of Punjab &nbsp;|&nbsp; Confidential — For Official Use Only
+</footer>
 </body>
 </html>
