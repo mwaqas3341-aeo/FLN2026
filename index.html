@@ -904,38 +904,41 @@ function executeSearch() {
     });
 }
 
-// TIME FORMATTER — after the fix, times are stored as plain "8:00 AM" text in Sheets.
-// Old records may still have ISO format (1899-12-30T04:20:48.000Z) with UTC+5 offset needed.
+// TIME FORMATTER — times are stored as plain "8:00 AM" text in Sheets.
+// Old records may still arrive as ISO strings (1899-12-30T...) — for those apply PKT +5.
+// NEVER add any offset to plain text strings.
 function formatTime(val) {
-    if (!val || val === "-") return "-";
+    if (!val || val === "-" || val === "") return "-";
+    const s = String(val).trim();
 
-    // Case 1: Already plain AM/PM text e.g. "8:00 AM" — show as-is (new records)
-    if (typeof val === 'string' && (val.includes('AM') || val.includes('PM'))) {
-        return val;
+    // Case 1: Plain AM/PM text — "8:00 AM", "08:00:00 AM" etc. Return cleaned.
+    if (s.toUpperCase().includes('AM') || s.toUpperCase().includes('PM')) {
+        // Strip seconds if present: "8:00:00 AM" → "8:00 AM"
+        return s.replace(/(\d+:\d+):\d+\s*(AM|PM)/i, '$1 $2').trim();
     }
-    // Case 2: ISO string from old records e.g. "1899-12-30T04:20:48.000Z"
-    // Stored in UTC, Pakistan = UTC+5, add 5 hours.
-    if (typeof val === 'string' && val.includes('T')) {
-        const timePart = val.split('T')[1];
+
+    // Case 2: Old ISO string "1899-12-30T03:30:00.000Z" — apply PKT +5
+    if (s.includes('T')) {
+        const timePart = s.split('T')[1];          // "03:30:00.000Z"
         const parts = timePart.split(':');
         let h = (parseInt(parts[0], 10) + 5) % 24;
         const m = parseInt(parts[1], 10);
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
-        const mStr = m < 10 ? '0' + m : m;
-        return `${h}:${mStr} ${ampm}`;
+        return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
     }
-    // Case 3: Plain HH:MM string
-    if (typeof val === 'string' && val.includes(':')) {
-        const parts = val.split(':');
+
+    // Case 3: Plain HH:MM or HH:MM:SS — no offset, just reformat
+    if (s.includes(':')) {
+        const parts = s.split(':');
         let h = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10);
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
-        const mStr = m < 10 ? '0' + m : m;
-        return `${h}:${mStr} ${ampm}`;
+        return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
     }
-    return val;
+
+    return s;
 }
 
 // TIME FIELDS in COT form — indices in cotInputNames that represent time values
@@ -1000,23 +1003,27 @@ function loadReportForEdit(emis, dateStr) {
                 if (!inputEl) continue;
                 let val = data.cotData[i] || "";
                 // Convert time value back to HH:MM for input[type="time"]
-                // New records: "8:00 AM" plain text
-                // Old records: "1899-12-30T04:20:48.000Z" ISO with UTC, need +5 PKT
                 if (inputEl.type === "time" && val) {
-                    if (val.includes('AM') || val.includes('PM')) {
-                        // Plain text e.g. "8:00 AM" → convert to "08:00"
-                        const [timePart, period] = val.trim().split(' ');
-                        let [hh, mm] = timePart.split(':').map(Number);
-                        if (period === 'PM' && hh !== 12) hh += 12;
-                        if (period === 'AM' && hh === 12) hh = 0;
-                        val = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
-                    } else if (val.includes('T')) {
-                        // Old ISO string — apply PKT +5 offset
-                        const timePart = val.split('T')[1];
+                    const v = String(val).trim();
+                    if (v.toUpperCase().includes('AM') || v.toUpperCase().includes('PM')) {
+                        // Plain text "8:00 AM" or "08:00:00 AM" → HH:MM, no offset
+                        const match = v.match(/(\d+):(\d+)(?::\d+)?\s*(AM|PM)/i);
+                        if (match) {
+                            let h = parseInt(match[1], 10);
+                            const m = parseInt(match[2], 10);
+                            const period = match[3].toUpperCase();
+                            if (period === 'PM' && h !== 12) h += 12;
+                            if (period === 'AM' && h === 12) h = 0;
+                            val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                        }
+                    } else if (v.includes('T')) {
+                        // Old ISO string — apply PKT +5 only for legacy records
+                        const timePart = v.split('T')[1];
                         const parts = timePart.split(':');
                         const hPKT = (parseInt(parts[0], 10) + 5) % 24;
                         val = `${String(hPKT).padStart(2, '0')}:${parts[1]}`;
                     }
+                    // Plain HH:MM — use as-is
                 }
                 inputEl.value = val;
             }
