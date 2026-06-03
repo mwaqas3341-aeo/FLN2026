@@ -874,15 +874,8 @@ function executeSearch() {
             <td class="fw-bold">${rep.emis}</td>
             <td>${schoolData[rep.emis]?.schoolName || "Unknown School"}</td>
             <td class="text-center">
-            <div class="dropdown">
-              <button class="btn btn-sm btn-dark fw-bold dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                ⚙️ Actions
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end shadow">
-                <li><a class="dropdown-item text-info fw-bold" href="#" onclick="openReportModal('${rep.emis}', '${rep.date}', '${safeSchoolName}'); return false;">👁️ View Report</a></li>
-                <li><a class="dropdown-item text-warning fw-bold" href="#" onclick="loadReportForEdit('${rep.emis}', '${rep.date}'); return false;">✏️ Edit Report</a></li>
-              </ul>
-            </div>
+            <button class="btn btn-sm btn-info text-white fw-bold shadow-sm" onclick="openReportModal('${rep.emis}', '${rep.date}', '${safeSchoolName}')">View</button>
+            <button class="btn btn-sm btn-warning fw-bold ms-1 shadow-sm" onclick="loadReportForEdit('${rep.emis}', '${rep.date}')">Edit</button>
             </td>
             `;
             tbody.appendChild(tr);
@@ -895,26 +888,29 @@ function executeSearch() {
     });
 }
 
-// TIME FORMATTER — handles both ISO date strings (1899-12-30T04:20:48.000Z) and HH:MM strings
+// TIME FORMATTER — Google Sheets returns time as ISO string in UTC (e.g. 1899-12-30T04:20:48.000Z)
+// Pakistan Standard Time is UTC+5, so we add 5 hours to get the correct local time.
 function formatTime(val) {
     if (!val || val === "-") return "-";
     let h, m;
-    // Case 1: ISO string like 1899-12-30T04:20:48.000Z
+
+    // Case 1: ISO string from Google Sheets e.g. "1899-12-30T04:20:48.000Z"
+    // The time part is stored in UTC. Pakistan = UTC+5, so add 5 hours.
     if (typeof val === 'string' && val.includes('T')) {
-        // Extract time portion directly from the string to avoid timezone shifts
-        const timePart = val.split('T')[1]; // e.g. "04:20:48.000Z"
+        const timePart = val.split('T')[1];        // "04:20:48.000Z"
         const parts = timePart.split(':');
-        h = parseInt(parts[0], 10);
+        h = (parseInt(parts[0], 10) + 5) % 24;    // ← +5 for PKT
         m = parseInt(parts[1], 10);
     }
-    // Case 2: Plain HH:MM string
+    // Case 2: Plain HH:MM string (already local time, no offset needed)
     else if (typeof val === 'string' && val.includes(':')) {
         const parts = val.split(':');
         h = parseInt(parts[0], 10);
         m = parseInt(parts[1], 10);
     } else {
-        return val; // Unknown format, return as-is
+        return val;
     }
+
     const ampm = h >= 12 ? 'PM' : 'AM';
     h = h % 12;
     h = h ? h : 12;
@@ -983,13 +979,13 @@ function loadReportForEdit(emis, dateStr) {
                 let inputEl = document.querySelector(`[name="${cotInputNames[i]}"]`);
                 if (!inputEl) continue;
                 let val = data.cotData[i] || "";
-                // Convert ISO time string to HH:MM for input[type="time"]
+                // Convert ISO time string (UTC from Google Sheets) to HH:MM local PKT for input[type="time"]
                 if (inputEl.type === "time" && val && val.includes('T')) {
-                    const timePart = val.split('T')[1]; // "04:20:48.000Z"
+                    const timePart = val.split('T')[1];
                     const parts = timePart.split(':');
-                    const h = parts[0].padStart(2, '0');
-                    const m = parts[1].padStart(2, '0');
-                    val = `${h}:${m}`;
+                    const hPKT = (parseInt(parts[0], 10) + 5) % 24;   // ← +5 for PKT
+                    const mVal = parts[1];
+                    val = `${String(hPKT).padStart(2, '0')}:${mVal}`;
                 }
                 inputEl.value = val;
             }
