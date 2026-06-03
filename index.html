@@ -910,23 +910,20 @@ function executeSearch() {
 function formatTime(val) {
     if (!val || val === "-" || val === "") return "-";
     const s = String(val).trim();
-    console.log('formatTime raw input:', JSON.stringify(s));
-
-    let h, m;
 
     // Case 1: Plain AM/PM text "8:00 AM" or "8:00:00 AM" — no conversion needed
     if (/AM|PM/i.test(s)) {
         return s.replace(/(\d+:\d+):\d+\s*(AM|PM)/i, '$1 $2').trim();
     }
 
-    // Case 2: ISO string from GAS e.g. "1899-12-30T10:25:00.000Z"
-    // Use getUTCHours/getUTCMinutes to read exact UTC time — NO offset added.
-    // The sheet column must be formatted as Plain Text in GAS for new records,
-    // but old records still come as ISO. We trust UTC exactly as stored.
+    // Case 2: ISO string from GAS e.g. "1899-12-30T05:25:48.000Z"
+    // Sheets stores PKT time as UTC-5 (subtracts 5 hrs). Add 5 to restore.
+    // Use getUTCHours/getUTCMinutes to ignore browser timezone.
+    // Seconds (e.g. :48) are floating-point noise — ignored via getUTCMinutes only.
     if (s.includes('T')) {
         const d = new Date(s);
-        h = d.getUTCHours();
-        m = d.getUTCMinutes();
+        let h = (d.getUTCHours() + 5) % 24;
+        const m = d.getUTCMinutes();
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
@@ -935,8 +932,8 @@ function formatTime(val) {
     // Case 3: Plain HH:MM
     if (s.includes(':')) {
         const parts = s.split(':');
-        h = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10);
+        let h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
         const ampm = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
@@ -1020,9 +1017,10 @@ function loadReportForEdit(emis, dateStr) {
                             val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
                         }
                     } else if (v.includes('T')) {
-                        // ISO string — read UTC exactly, no offset
+                        // ISO from GAS: UTC is PKT-5. Add 5. Use UTC methods to ignore browser tz.
+                        // getUTCMinutes ignores the floating-point seconds noise (:48 etc.)
                         const d = new Date(v);
-                        const h = d.getUTCHours();
+                        const h = (d.getUTCHours() + 5) % 24;
                         const m = d.getUTCMinutes();
                         val = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
                     }
