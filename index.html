@@ -798,6 +798,22 @@ function submitCOT(event) {
     const formData = new FormData(document.getElementById('cotForm'));
     const formObj = Object.fromEntries(formData.entries());
     formObj.isEdit = isEditMode ? "true" : "false"; // Pass Edit Flag
+
+    // Convert HH:MM time values to plain "8:00 AM" text BEFORE sending.
+    // This prevents Google Sheets from treating them as time serials and
+    // applying a timezone offset that shifts the saved time by +30 minutes.
+    function toAmPmText(hhmm) {
+        if (!hhmm) return hhmm;
+        const [hStr, mStr] = hhmm.split(':');
+        let h = parseInt(hStr, 10);
+        const m = parseInt(mStr, 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return `${h}:${m < 10 ? '0' + m : m} ${ampm}`;
+    }
+    if (formObj.t1_time) formObj.t1_time = toAmPmText(formObj.t1_time);
+    if (formObj.t2_time) formObj.t2_time = toAmPmText(formObj.t2_time);
+
     const payload = { action: 'saveCOT', formObject: formObj };
 
     if (!navigator.onLine) {
@@ -888,34 +904,38 @@ function executeSearch() {
     });
 }
 
-// TIME FORMATTER — Google Sheets returns time as ISO string in UTC (e.g. 1899-12-30T04:20:48.000Z)
-// Pakistan Standard Time is UTC+5, so we add 5 hours to get the correct local time.
+// TIME FORMATTER — after the fix, times are stored as plain "8:00 AM" text in Sheets.
+// Old records may still have ISO format (1899-12-30T04:20:48.000Z) with UTC+5 offset needed.
 function formatTime(val) {
     if (!val || val === "-") return "-";
-    let h, m;
 
-    // Case 1: ISO string from Google Sheets e.g. "1899-12-30T04:20:48.000Z"
-    // The time part is stored in UTC. Pakistan = UTC+5, so add 5 hours.
-    if (typeof val === 'string' && val.includes('T')) {
-        const timePart = val.split('T')[1];        // "04:20:48.000Z"
-        const parts = timePart.split(':');
-        h = (parseInt(parts[0], 10) + 5) % 24;    // ← +5 for PKT
-        m = parseInt(parts[1], 10);
-    }
-    // Case 2: Plain HH:MM string (already local time, no offset needed)
-    else if (typeof val === 'string' && val.includes(':')) {
-        const parts = val.split(':');
-        h = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10);
-    } else {
+    // Case 1: Already plain AM/PM text e.g. "8:00 AM" — show as-is (new records)
+    if (typeof val === 'string' && (val.includes('AM') || val.includes('PM'))) {
         return val;
     }
-
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12;
-    h = h ? h : 12;
-    const mStr = m < 10 ? '0' + m : m;
-    return `${h}:${mStr} ${ampm}`;
+    // Case 2: ISO string from old records e.g. "1899-12-30T04:20:48.000Z"
+    // Stored in UTC, Pakistan = UTC+5, add 5 hours.
+    if (typeof val === 'string' && val.includes('T')) {
+        const timePart = val.split('T')[1];
+        const parts = timePart.split(':');
+        let h = (parseInt(parts[0], 10) + 5) % 24;
+        const m = parseInt(parts[1], 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const mStr = m < 10 ? '0' + m : m;
+        return `${h}:${mStr} ${ampm}`;
+    }
+    // Case 3: Plain HH:MM string
+    if (typeof val === 'string' && val.includes(':')) {
+        const parts = val.split(':');
+        let h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        const mStr = m < 10 ? '0' + m : m;
+        return `${h}:${mStr} ${ampm}`;
+    }
+    return val;
 }
 
 // TIME FIELDS in COT form — indices in cotInputNames that represent time values
@@ -979,13 +999,24 @@ function loadReportForEdit(emis, dateStr) {
                 let inputEl = document.querySelector(`[name="${cotInputNames[i]}"]`);
                 if (!inputEl) continue;
                 let val = data.cotData[i] || "";
-                // Convert ISO time string (UTC from Google Sheets) to HH:MM local PKT for input[type="time"]
-                if (inputEl.type === "time" && val && val.includes('T')) {
-                    const timePart = val.split('T')[1];
-                    const parts = timePart.split(':');
-                    const hPKT = (parseInt(parts[0], 10) + 5) % 24;   // ← +5 for PKT
-                    const mVal = parts[1];
-                    val = `${String(hPKT).padStart(2, '0')}:${mVal}`;
+                // Convert time value back to HH:MM for input[type="time"]
+                // New records: "8:00 AM" plain text
+                // Old records: "1899-12-30T04:20:48.000Z" ISO with UTC, need +5 PKT
+                if (inputEl.type === "time" && val) {
+                    if (val.includes('AM') || val.includes('PM')) {
+                        // Plain text e.g. "8:00 AM" → convert to "08:00"
+                        const [timePart, period] = val.trim().split(' ');
+                        let [hh, mm] = timePart.split(':').map(Number);
+                        if (period === 'PM' && hh !== 12) hh += 12;
+                        if (period === 'AM' && hh === 12) hh = 0;
+                        val = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+                    } else if (val.includes('T')) {
+                        // Old ISO string — apply PKT +5 offset
+                        const timePart = val.split('T')[1];
+                        const parts = timePart.split(':');
+                        const hPKT = (parseInt(parts[0], 10) + 5) % 24;
+                        val = `${String(hPKT).padStart(2, '0')}:${parts[1]}`;
+                    }
                 }
                 inputEl.value = val;
             }
